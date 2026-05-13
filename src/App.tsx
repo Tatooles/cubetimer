@@ -269,7 +269,7 @@ export function App() {
               Add
             </button>
           </div>
-          <div className="session-stack">
+          <div className="sessions-grid">
             {data.sessions.map((session) => (
               <button
                 className={`session-button ${session.id === activeSession.id ? "active" : ""}`}
