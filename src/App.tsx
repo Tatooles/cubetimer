@@ -209,12 +209,12 @@ export function App() {
   }[timerState];
 
   return (
-    <main className="grid h-dvh w-full grid-cols-[minmax(0,1fr)_390px] overflow-hidden bg-[#090d13] bg-[radial-gradient(circle_at_30%_15%,rgba(70,114,190,0.14),transparent_36%)] max-[960px]:grid-cols-1 max-[960px]:grid-rows-[minmax(0,1fr)_minmax(260px,44dvh)]">
+    <main className="grid h-dvh w-full grid-cols-[minmax(0,1fr)_390px] overflow-hidden bg-[#090d13] bg-[radial-gradient(circle_at_30%_15%,rgba(70,114,190,0.14),transparent_36%)] max-[960px]:grid-cols-1 max-[960px]:grid-rows-[minmax(0,58dvh)_minmax(260px,42dvh)]">
       <section
-        className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-4 overflow-hidden p-5 max-[960px]:p-3.5"
+        className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-4 overflow-hidden p-5 max-[960px]:p-3.5 max-[680px]:gap-2"
         aria-label="Timer"
       >
-        <div className="flex min-h-[42px] items-center justify-between gap-4 max-[680px]:flex-col max-[680px]:items-stretch">
+        <div className="flex min-h-[42px] items-center justify-between gap-4 max-[680px]:min-h-[86px] max-[680px]:flex-col max-[680px]:items-stretch max-[680px]:justify-start">
           <BrandMark eventId={activeSession.eventId} />
           <div className="flex items-center gap-2 max-[680px]:flex-wrap">
             <Button type="button" onClick={() => exportJson(data)}>
