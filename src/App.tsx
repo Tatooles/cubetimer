@@ -38,6 +38,8 @@ export function App() {
   const timerFrame = useRef<number | null>(null);
   const importInput = useRef<HTMLInputElement | null>(null);
   const didRequestInitialScramble = useRef(false);
+  const latestScrambleRequestId = useRef(0);
+  const pendingScrambleRequestId = useRef<number | null>(null);
 
   const activeSession = data.sessions.find((session) => session.id === data.activeSessionId) ?? data.sessions[0];
   const sessionSolves = useMemo(
@@ -107,7 +109,7 @@ export function App() {
   }, [scramble, scrambleState, timerState, activeSession.id, activeSession.eventId, startAt]);
 
   function startTimer() {
-    if (scrambleState !== "ready") {
+    if (scrambleState !== "ready" || pendingScrambleRequestId.current !== null) {
       setTimerState("idle");
       setMessage("Generate a scramble before starting.");
       return;
@@ -160,11 +162,17 @@ export function App() {
   }
 
   async function requestScramble(eventId: EventId, resetHistory = false): Promise<boolean> {
+    const requestId = latestScrambleRequestId.current + 1;
+    latestScrambleRequestId.current = requestId;
+    pendingScrambleRequestId.current = requestId;
+
     if (shouldShowScrambleLoading(scrambleHistory, resetHistory)) setScramble(SCRAMBLE_LOADING_TEXT);
     setScrambleState("loading");
 
     try {
       const nextScramble = await generateScramble(eventId);
+      if (requestId !== latestScrambleRequestId.current) return false;
+
       setScramble(nextScramble);
       setScrambleState("ready");
       setMessage("");
@@ -173,15 +181,23 @@ export function App() {
       );
       return true;
     } catch (error) {
+      if (requestId !== latestScrambleRequestId.current) return false;
+
       setScramble(SCRAMBLE_ERROR_TEXT);
       setScrambleState("error");
       setMessage(error instanceof Error ? error.message : "Scramble generation failed.");
       if (resetHistory) setScrambleHistory({ entries: [], index: -1 });
       return false;
+    } finally {
+      if (pendingScrambleRequestId.current === requestId) {
+        pendingScrambleRequestId.current = null;
+      }
     }
   }
 
   function showPreviousScramble() {
+    if (scrambleState === "loading" || pendingScrambleRequestId.current !== null) return;
+
     const nextHistory = previousScrambleHistory(scrambleHistory);
     const nextScramble = nextHistory.entries[nextHistory.index];
     if (!nextScramble) return;
@@ -191,6 +207,8 @@ export function App() {
   }
 
   function showNextScramble() {
+    if (scrambleState === "loading" || pendingScrambleRequestId.current !== null) return;
+
     if (scrambleHistory.index < scrambleHistory.entries.length - 1) {
       const nextHistory = nextScrambleHistory(scrambleHistory);
       const nextScramble = nextHistory.entries[nextHistory.index];
@@ -291,8 +309,9 @@ export function App() {
     ready: "Release to start",
     running: "Press any key or tap to stop",
   }[timerState];
-  const canShowPreviousScramble = timerState !== "running" && scrambleHistory.index > 0;
-  const canShowNextScramble = timerState !== "running";
+  const canNavigateScrambles = timerState !== "running" && scrambleState !== "loading";
+  const canShowPreviousScramble = canNavigateScrambles && scrambleHistory.index > 0;
+  const canShowNextScramble = canNavigateScrambles;
 
   return (
     <main className="grid h-dvh w-full grid-cols-[minmax(0,1fr)_390px] overflow-hidden bg-[#090d13] bg-[radial-gradient(circle_at_30%_15%,rgba(70,114,190,0.14),transparent_36%)] max-[960px]:grid-cols-1 max-[960px]:grid-rows-[minmax(0,58dvh)_minmax(260px,42dvh)]">
