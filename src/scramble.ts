@@ -1,5 +1,10 @@
 import { randomScrambleForEvent } from "cubing/scramble";
+import { setSearchDebug } from "cubing/search";
 import type { EventId } from "./types";
+
+if (import.meta.env.PROD) {
+  setSearchDebug({ logPerf: false });
+}
 
 export type ScrambleHistory = {
   entries: string[];
@@ -29,4 +34,8 @@ export function nextScrambleHistory(history: ScrambleHistory): ScrambleHistory {
     ...history,
     index: Math.min(history.entries.length - 1, history.index + 1),
   };
+}
+
+export function shouldShowScrambleLoading(history: ScrambleHistory, resetHistory: boolean): boolean {
+  return resetHistory || history.entries.length === 0;
 }

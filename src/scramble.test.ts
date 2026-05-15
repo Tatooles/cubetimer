@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EVENTS } from "./events";
-import { appendScrambleHistory, generateScramble, nextScrambleHistory, previousScrambleHistory } from "./scramble";
+import {
+  appendScrambleHistory,
+  generateScramble,
+  nextScrambleHistory,
+  previousScrambleHistory,
+  shouldShowScrambleLoading,
+} from "./scramble";
 
 describe("scramble generation", () => {
   afterEach(() => {
@@ -47,5 +53,11 @@ describe("scramble generation", () => {
     const third = appendScrambleHistory(previous, "third");
 
     expect(third).toEqual({ entries: ["first", "third"], index: 1 });
+  });
+
+  it("shows loading only for initial generation and history resets", () => {
+    expect(shouldShowScrambleLoading({ entries: [], index: -1 }, false)).toBe(true);
+    expect(shouldShowScrambleLoading({ entries: ["first"], index: 0 }, false)).toBe(false);
+    expect(shouldShowScrambleLoading({ entries: ["first"], index: 0 }, true)).toBe(true);
   });
 });
