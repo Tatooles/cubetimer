@@ -159,7 +159,7 @@ export function App() {
     if (timerState === "holding" || timerState === "ready") setTimerState("idle");
   }
 
-  async function requestScramble(eventId: EventId, resetHistory = false) {
+  async function requestScramble(eventId: EventId, resetHistory = false): Promise<boolean> {
     if (shouldShowScrambleLoading(scrambleHistory, resetHistory)) setScramble(SCRAMBLE_LOADING_TEXT);
     setScrambleState("loading");
 
@@ -171,11 +171,13 @@ export function App() {
       setScrambleHistory((current) =>
         appendScrambleHistory(resetHistory ? { entries: [], index: -1 } : current, nextScramble),
       );
+      return true;
     } catch (error) {
       setScramble(SCRAMBLE_ERROR_TEXT);
       setScrambleState("error");
       setMessage(error instanceof Error ? error.message : "Scramble generation failed.");
       if (resetHistory) setScrambleHistory({ entries: [], index: -1 });
+      return false;
     }
   }
 
@@ -273,8 +275,9 @@ export function App() {
       const imported = await importTimerData(file);
       setData(imported);
       const active = imported.sessions.find((session) => session.id === imported.activeSessionId) ?? imported.sessions[0];
-      await requestScramble(active.eventId, true);
-      setMessage("Import complete.");
+      if (await requestScramble(active.eventId, true)) {
+        setMessage("Import complete.");
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Import failed.");
     } finally {
