@@ -116,7 +116,7 @@ export function App() {
   }
 
   async function requestScramble(eventId: EventId, resetHistory = false) {
-    setScramble("Generating scramble...");
+    if (scrambleHistory.entries.length === 0) setScramble("Generating scramble...");
     const nextScramble = await generateScramble(eventId);
     setScramble(nextScramble);
     setScrambleHistory((current) =>
