@@ -1,5 +1,4 @@
 import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
-import { ActionsMenu } from "./components/ActionsMenu";
 import { BrandMark } from "./components/BrandMark";
 import { Button } from "./components/Button";
 import { SessionsPanel } from "./components/SessionsPanel";
@@ -7,25 +6,40 @@ import { SolvesPanel } from "./components/SolvesPanel";
 import { StatCard } from "./components/StatCard";
 import { TimerDisplay } from "./components/TimerDisplay";
 import { averageOf, bestOf, meanOf } from "./format";
-import { generateScramble } from "./scramble";
+import {
+  appendScrambleHistory,
+  generateScramble,
+  nextScrambleHistory,
+  previousScrambleHistory,
+  shouldShowScrambleLoading,
+  type ScrambleHistory,
+} from "./scramble";
 import { createInitialData, createSession, createSolve, exportCsv, exportJson, importTimerData, loadData, saveData } from "./storage";
 import type { EventId, Penalty, Session, TimerData } from "./types";
 
 type TimerState = "idle" | "holding" | "ready" | "running";
+type ScrambleState = "loading" | "ready" | "error";
 
 const HOLD_MS = 450;
+const SCRAMBLE_LOADING_TEXT = "Generating scramble...";
+const SCRAMBLE_ERROR_TEXT = "Unable to generate scramble.";
 
 export function App() {
   const [data, setData] = useState<TimerData>(() => loadData());
   const [timerState, setTimerState] = useState<TimerState>("idle");
   const [startAt, setStartAt] = useState(0);
   const [elapsed, setElapsed] = useState(0);
-  const [scramble, setScramble] = useState("Generating scramble...");
+  const [scramble, setScramble] = useState(SCRAMBLE_LOADING_TEXT);
+  const [scrambleState, setScrambleState] = useState<ScrambleState>("loading");
+  const [scrambleHistory, setScrambleHistory] = useState<ScrambleHistory>({ entries: [], index: -1 });
   const [message, setMessage] = useState("");
   const holdTimeout = useRef<number | null>(null);
   const activePointerId = useRef<number | null>(null);
   const timerFrame = useRef<number | null>(null);
   const importInput = useRef<HTMLInputElement | null>(null);
+  const didRequestInitialScramble = useRef(false);
+  const latestScrambleRequestId = useRef(0);
+  const pendingScrambleRequestId = useRef<number | null>(null);
 
   const activeSession = data.sessions.find((session) => session.id === data.activeSessionId) ?? data.sessions[0];
   const sessionSolves = useMemo(
@@ -39,7 +53,9 @@ export function App() {
   useEffect(() => saveData(data), [data]);
 
   useEffect(() => {
-    void requestScramble(activeSession.eventId);
+    if (didRequestInitialScramble.current) return;
+    didRequestInitialScramble.current = true;
+    void requestScramble(activeSession.eventId, true);
   }, []);
 
   useEffect(() => {
@@ -90,9 +106,15 @@ export function App() {
       window.removeEventListener("keydown", onKeyDown, { capture: true });
       window.removeEventListener("keyup", onKeyUp, { capture: true });
     };
-  }, [scramble, timerState, activeSession.id, activeSession.eventId, startAt]);
+  }, [scramble, scrambleState, timerState, activeSession.id, activeSession.eventId, startAt]);
 
   function startTimer() {
+    if (scrambleState !== "ready" || pendingScrambleRequestId.current !== null) {
+      setTimerState("idle");
+      setMessage("Generate a scramble before starting.");
+      return;
+    }
+
     const now = performance.now();
     setStartAt(now);
     setElapsed(0);
@@ -139,9 +161,65 @@ export function App() {
     if (timerState === "holding" || timerState === "ready") setTimerState("idle");
   }
 
-  async function requestScramble(eventId: EventId) {
-    setScramble("Generating scramble...");
-    setScramble(await generateScramble(eventId));
+  async function requestScramble(eventId: EventId, resetHistory = false): Promise<boolean> {
+    const requestId = latestScrambleRequestId.current + 1;
+    latestScrambleRequestId.current = requestId;
+    pendingScrambleRequestId.current = requestId;
+
+    if (shouldShowScrambleLoading(scrambleHistory, resetHistory)) setScramble(SCRAMBLE_LOADING_TEXT);
+    setScrambleState("loading");
+
+    try {
+      const nextScramble = await generateScramble(eventId);
+      if (requestId !== latestScrambleRequestId.current) return false;
+
+      setScramble(nextScramble);
+      setScrambleState("ready");
+      setMessage("");
+      setScrambleHistory((current) =>
+        appendScrambleHistory(resetHistory ? { entries: [], index: -1 } : current, nextScramble),
+      );
+      return true;
+    } catch (error) {
+      if (requestId !== latestScrambleRequestId.current) return false;
+
+      setScramble(SCRAMBLE_ERROR_TEXT);
+      setScrambleState("error");
+      setMessage(error instanceof Error ? error.message : "Scramble generation failed.");
+      if (resetHistory) setScrambleHistory({ entries: [], index: -1 });
+      return false;
+    } finally {
+      if (pendingScrambleRequestId.current === requestId) {
+        pendingScrambleRequestId.current = null;
+      }
+    }
+  }
+
+  function showPreviousScramble() {
+    if (scrambleState === "loading" || pendingScrambleRequestId.current !== null) return;
+
+    const nextHistory = previousScrambleHistory(scrambleHistory);
+    const nextScramble = nextHistory.entries[nextHistory.index];
+    if (!nextScramble) return;
+    setScrambleHistory(nextHistory);
+    setScramble(nextScramble);
+    setScrambleState("ready");
+  }
+
+  function showNextScramble() {
+    if (scrambleState === "loading" || pendingScrambleRequestId.current !== null) return;
+
+    if (scrambleHistory.index < scrambleHistory.entries.length - 1) {
+      const nextHistory = nextScrambleHistory(scrambleHistory);
+      const nextScramble = nextHistory.entries[nextHistory.index];
+      if (!nextScramble) return;
+      setScrambleHistory(nextHistory);
+      setScramble(nextScramble);
+      setScrambleState("ready");
+      return;
+    }
+
+    void requestScramble(activeSession.eventId);
   }
 
   function updateSession(sessionId: string, patch: Partial<Session>) {
@@ -152,10 +230,11 @@ export function App() {
   }
 
   function setActiveSession(sessionId: string) {
+    if (sessionId === activeSession.id) return;
     const nextSession = data.sessions.find((session) => session.id === sessionId);
     if (!nextSession) return;
     setData((current) => ({ ...current, activeSessionId: sessionId }));
-    void requestScramble(nextSession.eventId);
+    void requestScramble(nextSession.eventId, true);
     setTimerState("idle");
   }
 
@@ -166,7 +245,7 @@ export function App() {
       activeSessionId: session.id,
       sessions: [...current.sessions, session],
     }));
-    void requestScramble(session.eventId);
+    void requestScramble(session.eventId, true);
   }
 
   function deleteSession(sessionId: string) {
@@ -180,12 +259,12 @@ export function App() {
       sessions: nextSessions,
       solves: current.solves.filter((solve) => solve.sessionId !== sessionId),
     }));
-    void requestScramble(nextSessions.find((session) => session.id === nextActive)?.eventId ?? "333");
+    void requestScramble(nextSessions.find((session) => session.id === nextActive)?.eventId ?? "333", true);
   }
 
   function changeActiveEvent(eventId: EventId) {
     updateSession(activeSession.id, { eventId });
-    void requestScramble(eventId);
+    void requestScramble(eventId, true);
   }
 
   function updatePenalty(solveId: string, penalty: Penalty) {
@@ -203,7 +282,7 @@ export function App() {
     if (!confirm("Reset all sessions and solves on this device?")) return;
     const fresh = createInitialData();
     setData(fresh);
-    void requestScramble(fresh.sessions[0].eventId);
+    void requestScramble(fresh.sessions[0].eventId, true);
   }
 
   async function handleImport(event: ChangeEvent<HTMLInputElement>) {
@@ -214,8 +293,9 @@ export function App() {
       const imported = await importTimerData(file);
       setData(imported);
       const active = imported.sessions.find((session) => session.id === imported.activeSessionId) ?? imported.sessions[0];
-      void requestScramble(active.eventId);
-      setMessage("Import complete.");
+      if (await requestScramble(active.eventId, true)) {
+        setMessage("Import complete.");
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Import failed.");
     } finally {
@@ -229,6 +309,9 @@ export function App() {
     ready: "Release to start",
     running: "Press any key or tap to stop",
   }[timerState];
+  const canNavigateScrambles = timerState !== "running" && scrambleState !== "loading";
+  const canShowPreviousScramble = canNavigateScrambles && scrambleHistory.index > 0;
+  const canShowNextScramble = canNavigateScrambles;
 
   return (
     <main className="grid h-dvh w-full grid-cols-[minmax(0,1fr)_390px] overflow-hidden bg-[#090d13] bg-[radial-gradient(circle_at_30%_15%,rgba(70,114,190,0.14),transparent_36%)] max-[960px]:grid-cols-1 max-[960px]:grid-rows-[minmax(0,58dvh)_minmax(260px,42dvh)]">
@@ -260,14 +343,17 @@ export function App() {
           onPointerUp={handleTimerPointerUp}
           scramble={scramble}
           scrambleActions={
-            <ActionsMenu label="Scramble actions">
-              <Button fullWidth type="button" onClick={() => void requestScramble(activeSession.eventId)} disabled={timerState === "running"}>
-                New scramble
+            <div className="flex flex-wrap gap-2" aria-label="Scramble actions">
+              <Button type="button" className="min-w-22" onClick={showPreviousScramble} disabled={!canShowPreviousScramble}>
+                Previous
               </Button>
-              <Button fullWidth type="button" onClick={() => void navigator.clipboard?.writeText(scramble)}>
-                Copy scramble
+              <Button type="button" className="min-w-22" onClick={showNextScramble} disabled={!canShowNextScramble}>
+                Next
               </Button>
-            </ActionsMenu>
+              <Button type="button" className="min-w-22" onClick={() => void navigator.clipboard?.writeText(scramble)}>
+                Copy
+              </Button>
+            </div>
           }
           statusText={statusText}
           timerState={timerState}
