@@ -1,4 +1,4 @@
-import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { BrandMark } from "./components/BrandMark";
 import { Button } from "./components/Button";
 import { SessionsPanel } from "./components/SessionsPanel";
@@ -34,6 +34,7 @@ export function App() {
   const [scrambleHistory, setScrambleHistory] = useState<ScrambleHistory>({ entries: [], index: -1 });
   const [message, setMessage] = useState("");
   const holdTimeout = useRef<number | null>(null);
+  const activePointerId = useRef<number | null>(null);
   const timerFrame = useRef<number | null>(null);
   const importInput = useRef<HTMLInputElement | null>(null);
   const didRequestInitialScramble = useRef(false);
@@ -81,9 +82,7 @@ export function App() {
 
       if (event.code !== "Space" || event.repeat || timerState !== "idle") return;
       event.preventDefault();
-      setMessage("");
-      setTimerState("holding");
-      holdTimeout.current = window.setTimeout(() => setTimerState("ready"), HOLD_MS);
+      beginHold();
     };
 
     const onKeyUp = (event: KeyboardEvent) => {
@@ -91,8 +90,7 @@ export function App() {
       event.preventDefault();
 
       if (holdTimeout.current) {
-        window.clearTimeout(holdTimeout.current);
-        holdTimeout.current = null;
+        clearHoldTimeout();
       }
 
       if (timerState === "ready") startTimer();
@@ -135,6 +133,30 @@ export function App() {
     void requestScramble(activeSession.eventId);
     setElapsed(finalTime);
     setTimerState("idle");
+  }
+
+  function beginHold() {
+    clearHoldTimeout();
+    setMessage("");
+    setTimerState("holding");
+    holdTimeout.current = window.setTimeout(() => setTimerState("ready"), HOLD_MS);
+  }
+
+  function clearHoldTimeout() {
+    if (!holdTimeout.current) return;
+    window.clearTimeout(holdTimeout.current);
+    holdTimeout.current = null;
+  }
+
+  function releaseHold() {
+    clearHoldTimeout();
+    if (timerState === "ready") startTimer();
+    if (timerState === "holding") setTimerState("idle");
+  }
+
+  function cancelHold() {
+    clearHoldTimeout();
+    if (timerState === "holding" || timerState === "ready") setTimerState("idle");
   }
 
   async function requestScramble(eventId: EventId, resetHistory = false) {
@@ -261,10 +283,10 @@ export function App() {
   }
 
   const statusText = {
-    idle: "Hold space",
+    idle: "Hold space or screen",
     holding: "Keep holding",
     ready: "Release to start",
-    running: "Press any key to stop",
+    running: "Press any key or tap to stop",
   }[timerState];
   const canShowPreviousScramble = timerState !== "running" && scrambleHistory.index > 0;
   const canShowNextScramble = timerState !== "running";
@@ -294,6 +316,9 @@ export function App() {
         <TimerDisplay
           elapsed={elapsed}
           onKeyDown={handleTimerPanelKey}
+          onPointerCancel={handleTimerPointerCancel}
+          onPointerDown={handleTimerPointerDown}
+          onPointerUp={handleTimerPointerUp}
           scramble={scramble}
           scrambleActions={
             <div className="flex flex-wrap gap-2" aria-label="Scramble actions">
@@ -346,9 +371,50 @@ export function App() {
       void requestScramble(activeSession.eventId);
     }
   }
+
+  function handleTimerPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!isTimerPointer(event)) return;
+
+    event.preventDefault();
+    event.currentTarget.focus();
+
+    if (timerState === "running") {
+      stopTimer();
+      return;
+    }
+
+    if (isInteractiveTarget(event.target)) return;
+    if (timerState !== "idle") return;
+    activePointerId.current = event.pointerId;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    beginHold();
+  }
+
+  function handleTimerPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    if (activePointerId.current !== event.pointerId) return;
+    event.preventDefault();
+    activePointerId.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    releaseHold();
+  }
+
+  function handleTimerPointerCancel(event: ReactPointerEvent<HTMLDivElement>) {
+    if (activePointerId.current !== event.pointerId) return;
+    activePointerId.current = null;
+    cancelHold();
+  }
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable;
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.closest("button, input, select, textarea, summary, a") !== null || target.isContentEditable;
+}
+
+function isTimerPointer(event: ReactPointerEvent<HTMLElement>): boolean {
+  return event.isPrimary && (event.pointerType === "touch" || event.pointerType === "pen");
 }
