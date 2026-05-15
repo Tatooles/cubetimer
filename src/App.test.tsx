@@ -31,7 +31,7 @@ describe("App timer input", () => {
     vi.useRealTimers();
   });
 
-  it("starts after holding and releasing a touch pointer", () => {
+  it("starts after holding and releasing a touch pointer", async () => {
     const timerDisplay = container.querySelector<HTMLElement>(".timer-display");
     expect(timerDisplay).not.toBeNull();
 
@@ -49,11 +49,12 @@ describe("App timer input", () => {
     expect(container.querySelector(".timer-status")?.textContent).toBe("Press any key or tap to stop");
 
     act(() => vi.advanceTimersByTime(1234));
-    act(() => {
+    await act(async () => {
       timerDisplay?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, isPrimary: true, pointerId: 2, pointerType: "touch" }));
+      await Promise.resolve();
     });
 
     expect(container.querySelector(".timer-status")?.textContent).toBe("Hold space or screen");
-    expect(container.querySelector(".section-heading span")?.textContent).toBe("1");
+    expect(container.querySelector("[aria-label='Solve count']")?.textContent).toBe("1");
   });
 });
