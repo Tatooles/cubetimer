@@ -20,6 +20,7 @@ export function App() {
   const holdTimeout = useRef<number | null>(null);
   const timerFrame = useRef<number | null>(null);
   const importInput = useRef<HTMLInputElement | null>(null);
+  const didRequestInitialScramble = useRef(false);
 
   const activeSession = data.sessions.find((session) => session.id === data.activeSessionId) ?? data.sessions[0];
   const sessionSolves = useMemo(
@@ -33,7 +34,9 @@ export function App() {
   useEffect(() => saveData(data), [data]);
 
   useEffect(() => {
-    void requestScramble(activeSession.eventId);
+    if (didRequestInitialScramble.current) return;
+    didRequestInitialScramble.current = true;
+    void requestScramble(activeSession.eventId, true);
   }, []);
 
   useEffect(() => {
