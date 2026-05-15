@@ -14,7 +14,9 @@ export function SolvesPanel({ onDeleteSolve, onUpdatePenalty, solves }: SolvesPa
     <section className="grid min-h-0 gap-[9px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-[0.96rem] text-slate-50">Solves</h2>
-        <span className="text-[#8d99aa]">{solves.length}</span>
+        <span className="text-[#8d99aa]" aria-label="Solve count">
+          {solves.length}
+        </span>
       </div>
 
       <div className="grid min-h-0 gap-2 overflow-auto pr-[3px]">
