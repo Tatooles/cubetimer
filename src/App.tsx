@@ -1,4 +1,4 @@
-import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { EVENTS, getEvent } from "./events";
 import { averageOf, bestOf, formatSolveTime, formatTime, meanOf, rollingAverageAt } from "./format";
 import { generateScramble } from "./scramble";
@@ -17,6 +17,7 @@ export function App() {
   const [scramble, setScramble] = useState("Generating scramble...");
   const [message, setMessage] = useState("");
   const holdTimeout = useRef<number | null>(null);
+  const activePointerId = useRef<number | null>(null);
   const timerFrame = useRef<number | null>(null);
   const importInput = useRef<HTMLInputElement | null>(null);
 
@@ -61,9 +62,7 @@ export function App() {
 
       if (event.code !== "Space" || event.repeat || timerState !== "idle") return;
       event.preventDefault();
-      setMessage("");
-      setTimerState("holding");
-      holdTimeout.current = window.setTimeout(() => setTimerState("ready"), HOLD_MS);
+      beginHold();
     };
 
     const onKeyUp = (event: KeyboardEvent) => {
@@ -71,8 +70,7 @@ export function App() {
       event.preventDefault();
 
       if (holdTimeout.current) {
-        window.clearTimeout(holdTimeout.current);
-        holdTimeout.current = null;
+        clearHoldTimeout();
       }
 
       if (timerState === "ready") startTimer();
@@ -109,6 +107,30 @@ export function App() {
     void requestScramble(activeSession.eventId);
     setElapsed(finalTime);
     setTimerState("idle");
+  }
+
+  function beginHold() {
+    clearHoldTimeout();
+    setMessage("");
+    setTimerState("holding");
+    holdTimeout.current = window.setTimeout(() => setTimerState("ready"), HOLD_MS);
+  }
+
+  function clearHoldTimeout() {
+    if (!holdTimeout.current) return;
+    window.clearTimeout(holdTimeout.current);
+    holdTimeout.current = null;
+  }
+
+  function releaseHold() {
+    clearHoldTimeout();
+    if (timerState === "ready") startTimer();
+    if (timerState === "holding") setTimerState("idle");
+  }
+
+  function cancelHold() {
+    clearHoldTimeout();
+    if (timerState === "holding" || timerState === "ready") setTimerState("idle");
   }
 
   async function requestScramble(eventId: EventId) {
@@ -196,10 +218,10 @@ export function App() {
   }
 
   const statusText = {
-    idle: "Hold space",
+    idle: "Hold space or screen",
     holding: "Keep holding",
     ready: "Release to start",
-    running: "Press any key to stop",
+    running: "Press any key or tap to stop",
   }[timerState];
 
   return (
@@ -232,7 +254,14 @@ export function App() {
           </div>
         </div>
 
-        <div className={`timer-display ${timerState}`} tabIndex={0} onKeyDown={(event) => handleTimerPanelKey(event)}>
+        <div
+          className={`timer-display ${timerState}`}
+          tabIndex={0}
+          onKeyDown={(event) => handleTimerPanelKey(event)}
+          onPointerDown={(event) => handleTimerPointerDown(event)}
+          onPointerUp={(event) => handleTimerPointerUp(event)}
+          onPointerCancel={(event) => handleTimerPointerCancel(event)}
+        >
           <div className="scramble-row">
             <p aria-label="Current scramble">{scramble}</p>
             <details className="menu">
@@ -367,6 +396,37 @@ export function App() {
       void requestScramble(activeSession.eventId);
     }
   }
+
+  function handleTimerPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!isTimerPointer(event) || isInteractiveTarget(event.target)) return;
+
+    event.preventDefault();
+    event.currentTarget.focus();
+
+    if (timerState === "running") {
+      stopTimer();
+      return;
+    }
+
+    if (timerState !== "idle") return;
+    activePointerId.current = event.pointerId;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    beginHold();
+  }
+
+  function handleTimerPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    if (activePointerId.current !== event.pointerId) return;
+    event.preventDefault();
+    activePointerId.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    releaseHold();
+  }
+
+  function handleTimerPointerCancel(event: ReactPointerEvent<HTMLDivElement>) {
+    if (activePointerId.current !== event.pointerId) return;
+    activePointerId.current = null;
+    cancelHold();
+  }
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -381,4 +441,13 @@ function Stat({ label, value }: { label: string; value: string }) {
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable;
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.closest("button, input, select, textarea, summary, a") !== null || target.isContentEditable;
+}
+
+function isTimerPointer(event: ReactPointerEvent<HTMLElement>): boolean {
+  return event.isPrimary && (event.pointerType === "touch" || event.pointerType === "pen");
 }

@@ -173,6 +173,8 @@ select {
   border-radius: 8px;
   background: #0c1118;
   outline: none;
+  touch-action: none;
+  user-select: none;
 }
 
 .timer-display.holding {
