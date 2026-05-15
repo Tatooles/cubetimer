@@ -1,9 +1,15 @@
 import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
-import { EVENTS, getEvent } from "./events";
-import { averageOf, bestOf, formatSolveTime, formatTime, meanOf, rollingAverageAt } from "./format";
+import { ActionsMenu } from "./components/ActionsMenu";
+import { BrandMark } from "./components/BrandMark";
+import { Button } from "./components/Button";
+import { SessionsPanel } from "./components/SessionsPanel";
+import { SolvesPanel } from "./components/SolvesPanel";
+import { StatCard } from "./components/StatCard";
+import { TimerDisplay } from "./components/TimerDisplay";
+import { averageOf, bestOf, meanOf } from "./format";
 import { generateScramble } from "./scramble";
 import { createInitialData, createSession, createSolve, exportCsv, exportJson, importTimerData, loadData, saveData } from "./storage";
-import type { EventId, Penalty, Session, Solve, TimerData } from "./types";
+import type { EventId, Penalty, Session, TimerData } from "./types";
 
 type TimerState = "idle" | "holding" | "ready" | "running";
 
@@ -203,161 +209,70 @@ export function App() {
   }[timerState];
 
   return (
-    <main className="app-shell">
-      <section className="timer-panel" aria-label="Timer">
-        <div className="topbar">
-          <div className="brand">
-            <span className="cube-mark" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
-            </span>
-            <div>
-              <h1>CubeTimer</h1>
-              <p>{getEvent(activeSession.eventId).name}</p>
-            </div>
-          </div>
-          <div className="topbar-actions">
-            <button type="button" onClick={() => exportJson(data)}>
+    <main className="grid h-dvh w-full grid-cols-[minmax(0,1fr)_390px] overflow-hidden bg-[#090d13] bg-[radial-gradient(circle_at_30%_15%,rgba(70,114,190,0.14),transparent_36%)] max-[960px]:grid-cols-1 max-[960px]:grid-rows-[minmax(0,58dvh)_minmax(260px,42dvh)]">
+      <section
+        className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-4 overflow-hidden p-5 max-[960px]:p-3.5 max-[680px]:gap-2"
+        aria-label="Timer"
+      >
+        <div className="flex min-h-[42px] items-center justify-between gap-4 max-[680px]:min-h-[86px] max-[680px]:flex-col max-[680px]:items-stretch max-[680px]:justify-start">
+          <BrandMark eventId={activeSession.eventId} />
+          <div className="flex items-center gap-2 max-[680px]:flex-wrap">
+            <Button type="button" onClick={() => exportJson(data)}>
               JSON
-            </button>
-            <button type="button" onClick={() => exportCsv(sessionSolves)}>
+            </Button>
+            <Button type="button" onClick={() => exportCsv(sessionSolves)}>
               CSV
-            </button>
-            <button type="button" onClick={() => importInput.current?.click()}>
+            </Button>
+            <Button type="button" onClick={() => importInput.current?.click()}>
               Import
-            </button>
+            </Button>
             <input ref={importInput} className="hidden" type="file" accept="application/json,.json" onChange={handleImport} />
           </div>
         </div>
 
-        <div className={`timer-display ${timerState}`} tabIndex={0} onKeyDown={(event) => handleTimerPanelKey(event)}>
-          <div className="scramble-row">
-            <p aria-label="Current scramble">{scramble}</p>
-            <details className="menu">
-              <summary aria-label="Scramble actions">...</summary>
-              <div className="menu-panel">
-                <button type="button" onClick={() => void requestScramble(activeSession.eventId)} disabled={timerState === "running"}>
-                  New scramble
-                </button>
-                <button type="button" onClick={() => void navigator.clipboard?.writeText(scramble)}>
-                  Copy scramble
-                </button>
-              </div>
-            </details>
-          </div>
-          <div className="time-readout">{formatTime(timerState === "running" ? elapsed : elapsed)}</div>
-          <div className="timer-status">{statusText}</div>
-        </div>
+        <TimerDisplay
+          elapsed={elapsed}
+          onKeyDown={handleTimerPanelKey}
+          scramble={scramble}
+          scrambleActions={
+            <ActionsMenu label="Scramble actions">
+              <Button fullWidth type="button" onClick={() => void requestScramble(activeSession.eventId)} disabled={timerState === "running"}>
+                New scramble
+              </Button>
+              <Button fullWidth type="button" onClick={() => void navigator.clipboard?.writeText(scramble)}>
+                Copy scramble
+              </Button>
+            </ActionsMenu>
+          }
+          statusText={statusText}
+          timerState={timerState}
+        />
 
-        <div className="stats-grid">
-          <Stat label="Solves" value={String(sessionSolves.length)} />
-          <Stat label="Best" value={bestOf(sessionSolves)} />
-          <Stat label="Mean" value={meanOf(sessionSolves)} />
-          <Stat label="Ao5" value={averageOf(sessionSolves, 5)} />
-          <Stat label="Ao12" value={averageOf(sessionSolves, 12)} />
+        <div className="grid grid-cols-5 gap-2 max-[680px]:gap-1.5">
+          <StatCard label="Solves" value={String(sessionSolves.length)} />
+          <StatCard label="Best" value={bestOf(sessionSolves)} />
+          <StatCard label="Mean" value={meanOf(sessionSolves)} />
+          <StatCard label="Ao5" value={averageOf(sessionSolves, 5)} />
+          <StatCard label="Ao12" value={averageOf(sessionSolves, 12)} />
         </div>
-        {message ? <p className="message">{message}</p> : null}
+        {message ? <p className="text-[#8d99aa]">{message}</p> : null}
       </section>
 
-      <aside className="side-panel" aria-label="Sessions and solves">
-        <section className="control-section">
-          <div className="section-heading">
-            <h2>Sessions</h2>
-            <button type="button" onClick={addSession}>
-              Add
-            </button>
-          </div>
-          <div className="sessions-grid">
-            {data.sessions.map((session) => (
-              <button
-                className={`session-button ${session.id === activeSession.id ? "active" : ""}`}
-                type="button"
-                key={session.id}
-                onClick={() => setActiveSession(session.id)}
-              >
-                <span>{session.name}</span>
-                <small>{getEvent(session.eventId).shortName}</small>
-              </button>
-            ))}
-          </div>
-          <label className="field-label" htmlFor="session-name">
-            Session name
-          </label>
-          <input
-            id="session-name"
-            value={activeSession.name}
-            onChange={(event) => updateSession(activeSession.id, { name: event.target.value })}
-          />
-          <label className="field-label" htmlFor="event">
-            Event
-          </label>
-          <select id="event" value={activeSession.eventId} onChange={(event) => changeActiveEvent(event.target.value as EventId)}>
-            {EVENTS.map((event) => (
-              <option value={event.id} key={event.id}>
-                {event.name}
-              </option>
-            ))}
-          </select>
-          <div className="danger-row">
-            <button type="button" onClick={() => deleteSession(activeSession.id)} disabled={data.sessions.length === 1}>
-              Delete session
-            </button>
-            <button type="button" onClick={resetAll}>
-              Reset all
-            </button>
-          </div>
-        </section>
-
-        <section className="control-section solves-section">
-          <div className="section-heading">
-            <h2>Solves</h2>
-            <span>{sessionSolves.length}</span>
-          </div>
-          <div className="solves-list">
-            {sessionSolves.length === 0 ? (
-              <p className="empty-state">No solves in this session yet.</p>
-            ) : (
-              sessionSolves.map((solve, index) => (
-                <article className="solve-row" key={solve.id}>
-                  <div>
-                    <span className="solve-index">{sessionSolves.length - index}</span>
-                    <strong>{formatSolveTime(solve.timeMs, solve.penalty)}</strong>
-                    <dl className="rolling-stats">
-                      <div>
-                        <dt>ao5</dt>
-                        <dd>{rollingAverageAt(sessionSolves, index, 5)}</dd>
-                      </div>
-                      <div>
-                        <dt>ao12</dt>
-                        <dd>{rollingAverageAt(sessionSolves, index, 12)}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                  <details className="menu solve-menu">
-                    <summary aria-label={`Actions for solve ${sessionSolves.length - index}`}>...</summary>
-                    <div className="menu-panel">
-                      <button type="button" onClick={() => updatePenalty(solve.id, "none")}>
-                        OK
-                      </button>
-                      <button type="button" onClick={() => updatePenalty(solve.id, "+2")}>
-                        +2
-                      </button>
-                      <button type="button" onClick={() => updatePenalty(solve.id, "DNF")}>
-                        DNF
-                      </button>
-                      <div className="scramble-preview">{solve.scramble}</div>
-                      <button type="button" className="danger-button" onClick={() => deleteSolve(solve.id)}>
-                        Delete
-                      </button>
-                    </div>
-                  </details>
-                </article>
-              ))
-            )}
-          </div>
-        </section>
+      <aside
+        className="grid h-dvh min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-3.5 overflow-hidden border-l border-[#1d2633] bg-[#0d131b] p-4 max-[960px]:h-auto max-[960px]:overflow-auto max-[960px]:border-t max-[960px]:border-l-0"
+        aria-label="Sessions and solves"
+      >
+        <SessionsPanel
+          activeSession={activeSession}
+          sessions={data.sessions}
+          onAddSession={addSession}
+          onChangeEvent={changeActiveEvent}
+          onDeleteSession={() => deleteSession(activeSession.id)}
+          onRenameSession={(name) => updateSession(activeSession.id, { name })}
+          onResetAll={resetAll}
+          onSelectSession={setActiveSession}
+        />
+        <SolvesPanel solves={sessionSolves} onDeleteSolve={deleteSolve} onUpdatePenalty={updatePenalty} />
       </aside>
     </main>
   );
@@ -367,15 +282,6 @@ export function App() {
       void requestScramble(activeSession.eventId);
     }
   }
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="stat">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
