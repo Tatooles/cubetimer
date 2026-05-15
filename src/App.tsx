@@ -1,7 +1,7 @@
 import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { EVENTS, getEvent } from "./events";
 import { averageOf, bestOf, formatSolveTime, formatTime, meanOf, rollingAverageAt } from "./format";
-import { generateScramble } from "./scramble";
+import { appendScrambleHistory, generateScramble, nextScrambleHistory, previousScrambleHistory, type ScrambleHistory } from "./scramble";
 import { createInitialData, createSession, createSolve, exportCsv, exportJson, importTimerData, loadData, saveData } from "./storage";
 import type { EventId, Penalty, Session, Solve, TimerData } from "./types";
 
@@ -15,6 +15,7 @@ export function App() {
   const [startAt, setStartAt] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [scramble, setScramble] = useState("Generating scramble...");
+  const [scrambleHistory, setScrambleHistory] = useState<ScrambleHistory>({ entries: [], index: -1 });
   const [message, setMessage] = useState("");
   const holdTimeout = useRef<number | null>(null);
   const timerFrame = useRef<number | null>(null);
@@ -111,9 +112,34 @@ export function App() {
     setTimerState("idle");
   }
 
-  async function requestScramble(eventId: EventId) {
+  async function requestScramble(eventId: EventId, resetHistory = false) {
     setScramble("Generating scramble...");
-    setScramble(await generateScramble(eventId));
+    const nextScramble = await generateScramble(eventId);
+    setScramble(nextScramble);
+    setScrambleHistory((current) =>
+      appendScrambleHistory(resetHistory ? { entries: [], index: -1 } : current, nextScramble),
+    );
+  }
+
+  function showPreviousScramble() {
+    const nextHistory = previousScrambleHistory(scrambleHistory);
+    const nextScramble = nextHistory.entries[nextHistory.index];
+    if (!nextScramble) return;
+    setScrambleHistory(nextHistory);
+    setScramble(nextScramble);
+  }
+
+  function showNextScramble() {
+    if (scrambleHistory.index < scrambleHistory.entries.length - 1) {
+      const nextHistory = nextScrambleHistory(scrambleHistory);
+      const nextScramble = nextHistory.entries[nextHistory.index];
+      if (!nextScramble) return;
+      setScrambleHistory(nextHistory);
+      setScramble(nextScramble);
+      return;
+    }
+
+    void requestScramble(activeSession.eventId);
   }
 
   function updateSession(sessionId: string, patch: Partial<Session>) {
@@ -124,10 +150,11 @@ export function App() {
   }
 
   function setActiveSession(sessionId: string) {
+    if (sessionId === activeSession.id) return;
     const nextSession = data.sessions.find((session) => session.id === sessionId);
     if (!nextSession) return;
     setData((current) => ({ ...current, activeSessionId: sessionId }));
-    void requestScramble(nextSession.eventId);
+    void requestScramble(nextSession.eventId, true);
     setTimerState("idle");
   }
 
@@ -138,7 +165,7 @@ export function App() {
       activeSessionId: session.id,
       sessions: [...current.sessions, session],
     }));
-    void requestScramble(session.eventId);
+    void requestScramble(session.eventId, true);
   }
 
   function deleteSession(sessionId: string) {
@@ -152,12 +179,12 @@ export function App() {
       sessions: nextSessions,
       solves: current.solves.filter((solve) => solve.sessionId !== sessionId),
     }));
-    void requestScramble(nextSessions.find((session) => session.id === nextActive)?.eventId ?? "333");
+    void requestScramble(nextSessions.find((session) => session.id === nextActive)?.eventId ?? "333", true);
   }
 
   function changeActiveEvent(eventId: EventId) {
     updateSession(activeSession.id, { eventId });
-    void requestScramble(eventId);
+    void requestScramble(eventId, true);
   }
 
   function updatePenalty(solveId: string, penalty: Penalty) {
@@ -201,6 +228,8 @@ export function App() {
     ready: "Release to start",
     running: "Press any key to stop",
   }[timerState];
+  const canShowPreviousScramble = timerState !== "running" && scrambleHistory.index > 0;
+  const canShowNextScramble = timerState !== "running";
 
   return (
     <main className="app-shell">
@@ -235,17 +264,17 @@ export function App() {
         <div className={`timer-display ${timerState}`} tabIndex={0} onKeyDown={(event) => handleTimerPanelKey(event)}>
           <div className="scramble-row">
             <p aria-label="Current scramble">{scramble}</p>
-            <details className="menu">
-              <summary aria-label="Scramble actions">...</summary>
-              <div className="menu-panel">
-                <button type="button" onClick={() => void requestScramble(activeSession.eventId)} disabled={timerState === "running"}>
-                  New scramble
-                </button>
-                <button type="button" onClick={() => void navigator.clipboard?.writeText(scramble)}>
-                  Copy scramble
-                </button>
-              </div>
-            </details>
+            <div className="scramble-actions" aria-label="Scramble actions">
+              <button type="button" onClick={showPreviousScramble} disabled={!canShowPreviousScramble}>
+                Previous
+              </button>
+              <button type="button" onClick={showNextScramble} disabled={!canShowNextScramble}>
+                Next
+              </button>
+              <button type="button" onClick={() => void navigator.clipboard?.writeText(scramble)}>
+                Copy
+              </button>
+            </div>
           </div>
           <div className="time-readout">{formatTime(timerState === "running" ? elapsed : elapsed)}</div>
           <div className="timer-status">{statusText}</div>

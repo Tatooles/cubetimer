@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EVENTS } from "./events";
-import { generateScramble } from "./scramble";
+import { appendScrambleHistory, generateScramble, nextScrambleHistory, previousScrambleHistory } from "./scramble";
 
 describe("scramble generation", () => {
   afterEach(() => {
@@ -28,5 +28,24 @@ describe("scramble generation", () => {
     const { generateScramble } = await import("./scramble");
 
     await expect(generateScramble("333")).rejects.toThrow("generation failed");
+  });
+
+  it("tracks previous and next scrambles", () => {
+    const first = appendScrambleHistory({ entries: [], index: -1 }, "first");
+    const second = appendScrambleHistory(first, "second");
+    const previous = previousScrambleHistory(second);
+    const next = nextScrambleHistory(previous);
+
+    expect(previous).toEqual({ entries: ["first", "second"], index: 0 });
+    expect(next).toEqual(second);
+  });
+
+  it("drops future scrambles when a new scramble is generated after going back", () => {
+    const first = appendScrambleHistory({ entries: [], index: -1 }, "first");
+    const second = appendScrambleHistory(first, "second");
+    const previous = previousScrambleHistory(second);
+    const third = appendScrambleHistory(previous, "third");
+
+    expect(third).toEqual({ entries: ["first", "third"], index: 1 });
   });
 });

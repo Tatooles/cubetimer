@@ -190,7 +190,7 @@ select {
 
 .scramble-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   align-items: start;
 }
@@ -201,6 +201,16 @@ select {
   font-size: clamp(0.9rem, 1.35vw, 1.08rem);
   line-height: 1.55;
   overflow-wrap: anywhere;
+}
+
+.scramble-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.scramble-actions button {
+  min-width: 88px;
 }
 
 .time-readout {
