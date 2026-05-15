@@ -309,7 +309,7 @@ export function App() {
   }
 
   function handleTimerPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!isTimerPointer(event) || isInteractiveTarget(event.target)) return;
+    if (!isTimerPointer(event)) return;
 
     event.preventDefault();
     event.currentTarget.focus();
@@ -319,6 +319,7 @@ export function App() {
       return;
     }
 
+    if (isInteractiveTarget(event.target)) return;
     if (timerState !== "idle") return;
     activePointerId.current = event.pointerId;
     event.currentTarget.setPointerCapture?.(event.pointerId);

@@ -57,4 +57,29 @@ describe("App timer input", () => {
     expect(container.querySelector(".timer-status")?.textContent).toBe("Hold space or screen");
     expect(container.querySelector("[aria-label='Solve count']")?.textContent).toBe("1");
   });
+
+  it("stops the running timer when tapping an interactive timer control", async () => {
+    const timerDisplay = container.querySelector<HTMLElement>(".timer-display");
+    const scrambleActions = container.querySelector<HTMLElement>("[aria-label='Scramble actions']");
+    expect(timerDisplay).not.toBeNull();
+    expect(scrambleActions).not.toBeNull();
+
+    act(() => {
+      timerDisplay?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, isPrimary: true, pointerId: 1, pointerType: "touch" }));
+    });
+    act(() => vi.advanceTimersByTime(450));
+    act(() => {
+      timerDisplay?.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, isPrimary: true, pointerId: 1, pointerType: "touch" }));
+    });
+    expect(container.querySelector(".timer-status")?.textContent).toBe("Press any key or tap to stop");
+
+    act(() => vi.advanceTimersByTime(1234));
+    await act(async () => {
+      scrambleActions?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, isPrimary: true, pointerId: 2, pointerType: "touch" }));
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector(".timer-status")?.textContent).toBe("Hold space or screen");
+    expect(container.querySelector("[aria-label='Solve count']")?.textContent).toBe("1");
+  });
 });
