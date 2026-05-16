@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cube Timer — Design directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #0a0a0b; color: #f3f3f0; font-family: 'Inter', system-ui, sans-serif; }
+  iframe.dc-iframe { border: 0; display: block; width: 100%; height: 100%; }
+  .intro {
+    padding: 18px 22px;
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    max-width: 740px;
+    line-height: 1.55;
+  }
+  .intro h1 {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-weight: 400;
+    font-size: 28px;
+    margin: 0 0 6px;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+  .intro .sub { color: rgba(255,255,255,0.45); font-size: 12px; }
+  .intro p { margin: 8px 0 0; }
+  .intro b { color: #fff; font-weight: 600; }
+  .intro kbd {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    padding: 1px 6px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff;
+  }
+</style>
+</head>
+<body>
+  <div class="intro">
+    <h1>Cube timer — three directions</h1>
+    <div class="sub">Dark-mode monochrome with a single indigo accent · monospaced timer · top scramble + center timer + right rail · 50 seeded solves · <b>Studio direction is responsive — mobile artboard included</b></div>
+    <p>Each artboard is a working prototype. <b>Click into any one</b> to focus it, then hold <kbd>Space</kbd> to start the timer, press <kbd>N</kbd> for a new scramble, or open the settings icon for live tweaks. Solves persist per direction in localStorage.</p>
+  </div>
+
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel">
+    const { useEffect, useRef } = React;
+    function Iframe({ src }) {
+      return (
+        <iframe className="dc-iframe" src={src} title={src}
+          style={{ background: '#0a0a0b' }}
+          loading="lazy" />
+      );
+    }
+    function App() {
+      return (
+        <DesignCanvas>
+          <DCSection id="desktop" title="Desktop" subtitle="1440 × 900 — same data, different feel.">
+            <DCArtboard id="studio" label="A · Studio · minimal mono" width={1440} height={900}>
+              <Iframe src="studio.html" />
+            </DCArtboard>
+            <DCArtboard id="grid" label="B · Grid · terminal" width={1440} height={900}>
+              <Iframe src="grid.html" />
+            </DCArtboard>
+            <DCArtboard id="floating" label="C · Floating · soft cards" width={1440} height={900}>
+              <Iframe src="floating.html" />
+            </DCArtboard>
+          </DCSection>
+          <DCSection id="mobile" title="Mobile · Studio responsive" subtitle="402 × 844 — same studio.html, narrow viewport. Bottom nav opens session, graph, cube, histogram & settings.">
+            <DCArtboard id="m-timer" label="Timer (idle)" width={402} height={844}>
+              <Iframe src="studio.html" />
+            </DCArtboard>
+            <DCArtboard id="m-cube" label="Cube sheet open" width={402} height={844}>
+              <Iframe src="studio.html?sheet=mod-draw" />
+            </DCArtboard>
+            <DCArtboard id="m-graph" label="Graph sheet open" width={402} height={844}>
+              <Iframe src="studio.html?sheet=mod-graph" />
+            </DCArtboard>
+            <DCArtboard id="m-session" label="Session panel open" width={402} height={844}>
+              <Iframe src="studio.html?sheet=sidebar" />
+            </DCArtboard>
+          </DCSection>
+        </DesignCanvas>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
