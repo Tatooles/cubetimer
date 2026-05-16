@@ -1,4 +1,4 @@
-import { defineConfig, type ResolveModulePreloadDependenciesFn } from "vite";
+import { defineConfig, type ResolveModulePreloadDependenciesFn } from "vite-plus";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 

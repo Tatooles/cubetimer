@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.26.1",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc && vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "test": "vitest run"
+    "dev": "vp dev --host 0.0.0.0",
+    "build": "tsc && vp build",
+    "preview": "vp preview --host 0.0.0.0",
+    "test": "vp test run",
+    "check": "vp check --no-fmt"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -23,6 +25,7 @@
     "@types/react-dom": "^19.2.3",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4.3.0",
+    "vite-plus": "^0.1.21",
     "vitest": "^4.1.6"
   }
 }
