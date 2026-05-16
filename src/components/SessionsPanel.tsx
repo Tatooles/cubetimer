@@ -51,7 +51,7 @@ export function SessionsPanel({
       <FieldLabel htmlFor="session-name">Session name</FieldLabel>
       <TextInput id="session-name" value={activeSession.name} onChange={(event) => onRenameSession(event.target.value)} />
 
-      <FieldLabel htmlFor="event">Event</FieldLabel>
+      <FieldLabel htmlFor="event">Scramble type</FieldLabel>
       <SelectInput id="event" value={activeSession.eventId} onChange={(event) => onChangeEvent(event.target.value as EventId)}>
         {EVENTS.map((event) => (
           <option value={event.id} key={event.id}>

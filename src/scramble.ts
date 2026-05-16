@@ -1,6 +1,7 @@
 import { randomScrambleForEvent } from "cubing/scramble";
 import { setSearchDebug } from "cubing/search";
 import type { EventId } from "./types";
+import { generate333LSLLScramble } from "./trainingScrambles333";
 
 if (import.meta.env.PROD) {
   setSearchDebug({ logPerf: false });
@@ -12,6 +13,8 @@ export type ScrambleHistory = {
 };
 
 export async function generateScramble(eventId: EventId): Promise<string> {
+  if (eventId === "333-lsll") return generate333LSLLScramble();
+
   return (await randomScrambleForEvent(eventId)).toString();
 }
 
