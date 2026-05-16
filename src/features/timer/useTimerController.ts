@@ -7,6 +7,10 @@ export type TimerSnapshot = {
   elapsedMs: number;
 };
 
+export function stoppedTimerSnapshot(elapsedMs: number): TimerSnapshot {
+  return { stage: "idle", elapsedMs };
+}
+
 export function useTimerController(
   onSolve: (ms: number) => void,
   holdMs = 350,
@@ -53,8 +57,9 @@ export function useTimerController(
     }
 
     const elapsedMs = performance.now() - startRef.current;
+    const stoppedSnapshot = stoppedTimerSnapshot(elapsedMs);
     clearTimers();
-    setStage("idle", 0);
+    setStage(stoppedSnapshot.stage, stoppedSnapshot.elapsedMs);
     onSolve(Math.max(1, Math.round(elapsedMs)));
   }, [clearTimers, onSolve, setStage]);
 

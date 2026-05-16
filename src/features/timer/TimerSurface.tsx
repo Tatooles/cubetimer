@@ -53,10 +53,11 @@ export function TimerSurface({ stage, elapsedMs, bests, onPress, onRelease }: Ti
           stage === "idle" ? "opacity-100" : "opacity-0"
         }`}
       >
-        <kbd className="rounded border border-white/10 px-2 py-1 font-mono normal-case tracking-normal text-zinc-500">
+        <kbd className="hidden rounded border border-white/10 px-2 py-1 font-mono normal-case tracking-normal text-zinc-500 md:inline-block">
           Space
         </kbd>
-        Hold to start
+        <span className="hidden md:inline">Hold to start</span>
+        <span className="md:hidden">Hold screen to start</span>
       </div>
       <div
         className={`absolute bottom-7 left-1/2 hidden -translate-x-1/2 gap-7 font-mono text-xs transition md:flex ${
