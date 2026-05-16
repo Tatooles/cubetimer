@@ -1,6 +1,10 @@
+import { EVENTS } from "./events";
 import type { EventId, Session, Solve, TimerData } from "./types";
 
 const STORAGE_KEY = "cubetimer:data";
+const FALLBACK_EVENT_ID: EventId = "333";
+const SUPPORTED_EVENT_IDS = new Set<EventId>(EVENTS.map((event) => event.id));
+const LEGACY_EVENT_ID_ALIASES: Record<string, EventId> = {};
 
 function createId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -49,14 +53,14 @@ export function loadData(): TimerData {
       return fallback;
     }
 
-    return {
+    return normalizeTimerData({
       version: 1,
       activeSessionId: parsed.sessions.some((session) => session.id === parsed.activeSessionId)
         ? parsed.activeSessionId
         : parsed.sessions[0].id,
       sessions: parsed.sessions,
       solves: parsed.solves,
-    };
+    });
   } catch {
     return fallback;
   }
@@ -113,12 +117,31 @@ export async function importTimerData(file: File): Promise<TimerData> {
     throw new Error("This file is not a valid CubeTimer export.");
   }
 
-  return {
+  return normalizeTimerData({
     version: 1,
     activeSessionId: parsed.sessions.some((session) => session.id === parsed.activeSessionId)
       ? parsed.activeSessionId
       : parsed.sessions[0].id,
     sessions: parsed.sessions,
     solves: parsed.solves,
+  });
+}
+
+function normalizeTimerData(data: TimerData): TimerData {
+  return {
+    ...data,
+    sessions: data.sessions.map((session) => ({
+      ...session,
+      eventId: normalizeEventId(session.eventId),
+    })),
+    solves: data.solves.map((solve) => ({
+      ...solve,
+      eventId: normalizeEventId(solve.eventId),
+    })),
   };
+}
+
+function normalizeEventId(eventId: EventId): EventId {
+  if (SUPPORTED_EVENT_IDS.has(eventId)) return eventId;
+  return LEGACY_EVENT_ID_ALIASES[eventId] ?? FALLBACK_EVENT_ID;
 }

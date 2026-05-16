@@ -59,7 +59,7 @@ export function SessionsPanel({
         onChange={(event) => onRenameSession(event.target.value)}
       />
 
-      <FieldLabel htmlFor="event">Event</FieldLabel>
+      <FieldLabel htmlFor="event">Scramble type</FieldLabel>
       <SelectInput
         id="event"
         value={activeSession.eventId}

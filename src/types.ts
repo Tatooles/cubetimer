@@ -1,5 +1,6 @@
-export type EventId =
+export type ScrambleTypeId =
   | "333"
+  | "333-lsll"
   | "222"
   | "444"
   | "555"
@@ -12,6 +13,8 @@ export type EventId =
   | "minx"
   | "sq1"
   | "clock";
+
+export type EventId = ScrambleTypeId;
 
 export type Penalty = "none" | "+2" | "DNF";
 

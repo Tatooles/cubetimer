@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { cube3x3x3 } from "cubing/puzzles";
 import { EVENTS } from "./events";
 import {
   appendScrambleHistory,
@@ -7,6 +8,7 @@ import {
   previousScrambleHistory,
   shouldShowScrambleLoading,
 } from "./scramble";
+import { randomLSLLPatternData } from "./trainingScrambles333";
 
 describe("scramble generation", () => {
   afterEach(() => {
@@ -24,6 +26,37 @@ describe("scramble generation", () => {
     const moves = (await generateScramble("333")).split(" ");
     expect(moves.length).toBeGreaterThan(10);
     expect(moves.every((move) => /^[URFDLB][w]?[2']?$/.test(move))).toBe(true);
+  });
+
+  it("builds LSLL states with cross and three F2L slots solved", () => {
+    const pattern = randomLSLLPatternData();
+
+    expect(pattern.EDGES.pieces.slice(4, 8)).toEqual([4, 5, 6, 7]);
+    expect(pattern.EDGES.orientation.slice(4, 8)).toEqual([0, 0, 0, 0]);
+    expect(pattern.EDGES.pieces.slice(9, 12)).toEqual([9, 10, 11]);
+    expect(pattern.EDGES.orientation.slice(9, 12)).toEqual([0, 0, 0]);
+    expect(pattern.CORNERS.pieces.slice(5, 8)).toEqual([5, 6, 7]);
+    expect(pattern.CORNERS.orientation.slice(5, 8)).toEqual([0, 0, 0]);
+  });
+
+  it("generates parseable-looking LSLL scrambles", async () => {
+    const moves = (await generateScramble("333-lsll")).split(" ");
+
+    expect(moves.length).toBeGreaterThan(3);
+    expect(moves.every((move) => /^[URFDLB][2']?$/.test(move))).toBe(true);
+  });
+
+  it("generates LSLL scrambles that preserve the cross and three F2L slots", async () => {
+    const kpuzzle = await cube3x3x3.kpuzzle();
+    const scramble = await generateScramble("333-lsll");
+    const pattern = kpuzzle.defaultPattern().applyAlg(scramble).patternData;
+
+    expect(pattern.EDGES.pieces.slice(4, 8)).toEqual([4, 5, 6, 7]);
+    expect(pattern.EDGES.orientation.slice(4, 8)).toEqual([0, 0, 0, 0]);
+    expect(pattern.EDGES.pieces.slice(9, 12)).toEqual([9, 10, 11]);
+    expect(pattern.EDGES.orientation.slice(9, 12)).toEqual([0, 0, 0]);
+    expect(pattern.CORNERS.pieces.slice(5, 8)).toEqual([5, 6, 7]);
+    expect(pattern.CORNERS.orientation.slice(5, 8)).toEqual([0, 0, 0]);
   });
 
   it("rejects when cubing cannot generate a scramble", async () => {

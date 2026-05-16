@@ -6,7 +6,7 @@ A local-first Rubik's cube timer built with React, TypeScript, and Vite for depl
 
 - Spacebar hold-to-ready timing flow: hold space, release to start, press any key to stop.
 - Multiple local sessions with per-session event selection.
-- Scrambles for 2x2 through 7x7, 3x3 OH, 3BLD, Pyraminx, Skewb, Megaminx, Square-1, and Clock.
+- Scrambles for 2x2 through 7x7, 3x3 OH, 3BLD, Pyraminx, Skewb, Megaminx, Square-1, Clock, and 3x3 LSLL training.
 - Solve history with penalties, delete controls, best/mean/Ao5/Ao12 stats.
 - Local persistence through `localStorage`.
 - JSON import/export for full app data and CSV export for the active session.
