@@ -1,4 +1,12 @@
-import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { BrandMark } from "./components/BrandMark";
 import { Button } from "./components/Button";
 import { SessionsPanel } from "./components/SessionsPanel";
@@ -14,7 +22,16 @@ import {
   shouldShowScrambleLoading,
   type ScrambleHistory,
 } from "./scramble";
-import { createInitialData, createSession, createSolve, exportCsv, exportJson, importTimerData, loadData, saveData } from "./storage";
+import {
+  createInitialData,
+  createSession,
+  createSolve,
+  exportCsv,
+  exportJson,
+  importTimerData,
+  loadData,
+  saveData,
+} from "./storage";
 import type { EventId, Penalty, Session, TimerData } from "./types";
 
 type TimerState = "idle" | "holding" | "ready" | "running";
@@ -31,7 +48,10 @@ export function App() {
   const [elapsed, setElapsed] = useState(0);
   const [scramble, setScramble] = useState(SCRAMBLE_LOADING_TEXT);
   const [scrambleState, setScrambleState] = useState<ScrambleState>("loading");
-  const [scrambleHistory, setScrambleHistory] = useState<ScrambleHistory>({ entries: [], index: -1 });
+  const [scrambleHistory, setScrambleHistory] = useState<ScrambleHistory>({
+    entries: [],
+    index: -1,
+  });
   const [message, setMessage] = useState("");
   const holdTimeout = useRef<number | null>(null);
   const activePointerId = useRef<number | null>(null);
@@ -41,7 +61,8 @@ export function App() {
   const latestScrambleRequestId = useRef(0);
   const pendingScrambleRequestId = useRef<number | null>(null);
 
-  const activeSession = data.sessions.find((session) => session.id === data.activeSessionId) ?? data.sessions[0];
+  const activeSession =
+    data.sessions.find((session) => session.id === data.activeSessionId) ?? data.sessions[0];
   const sessionSolves = useMemo(
     () =>
       data.solves
@@ -166,7 +187,8 @@ export function App() {
     latestScrambleRequestId.current = requestId;
     pendingScrambleRequestId.current = requestId;
 
-    if (shouldShowScrambleLoading(scrambleHistory, resetHistory)) setScramble(SCRAMBLE_LOADING_TEXT);
+    if (shouldShowScrambleLoading(scrambleHistory, resetHistory))
+      setScramble(SCRAMBLE_LOADING_TEXT);
     setScrambleState("loading");
 
     try {
@@ -225,7 +247,9 @@ export function App() {
   function updateSession(sessionId: string, patch: Partial<Session>) {
     setData((current) => ({
       ...current,
-      sessions: current.sessions.map((session) => (session.id === sessionId ? { ...session, ...patch } : session)),
+      sessions: current.sessions.map((session) =>
+        session.id === sessionId ? { ...session, ...patch } : session,
+      ),
     }));
   }
 
@@ -251,7 +275,8 @@ export function App() {
   function deleteSession(sessionId: string) {
     if (data.sessions.length === 1) return;
     const nextSessions = data.sessions.filter((session) => session.id !== sessionId);
-    const nextActive = data.activeSessionId === sessionId ? nextSessions[0].id : data.activeSessionId;
+    const nextActive =
+      data.activeSessionId === sessionId ? nextSessions[0].id : data.activeSessionId;
 
     setData((current) => ({
       ...current,
@@ -259,7 +284,10 @@ export function App() {
       sessions: nextSessions,
       solves: current.solves.filter((solve) => solve.sessionId !== sessionId),
     }));
-    void requestScramble(nextSessions.find((session) => session.id === nextActive)?.eventId ?? "333", true);
+    void requestScramble(
+      nextSessions.find((session) => session.id === nextActive)?.eventId ?? "333",
+      true,
+    );
   }
 
   function changeActiveEvent(eventId: EventId) {
@@ -275,7 +303,10 @@ export function App() {
   }
 
   function deleteSolve(solveId: string) {
-    setData((current) => ({ ...current, solves: current.solves.filter((solve) => solve.id !== solveId) }));
+    setData((current) => ({
+      ...current,
+      solves: current.solves.filter((solve) => solve.id !== solveId),
+    }));
   }
 
   function resetAll() {
@@ -292,7 +323,9 @@ export function App() {
     try {
       const imported = await importTimerData(file);
       setData(imported);
-      const active = imported.sessions.find((session) => session.id === imported.activeSessionId) ?? imported.sessions[0];
+      const active =
+        imported.sessions.find((session) => session.id === imported.activeSessionId) ??
+        imported.sessions[0];
       if (await requestScramble(active.eventId, true)) {
         setMessage("Import complete.");
       }
@@ -331,7 +364,13 @@ export function App() {
             <Button type="button" onClick={() => importInput.current?.click()}>
               Import
             </Button>
-            <input ref={importInput} className="hidden" type="file" accept="application/json,.json" onChange={handleImport} />
+            <input
+              ref={importInput}
+              className="hidden"
+              type="file"
+              accept="application/json,.json"
+              onChange={handleImport}
+            />
           </div>
         </div>
 
@@ -344,13 +383,27 @@ export function App() {
           scramble={scramble}
           scrambleActions={
             <div className="flex flex-wrap gap-2" aria-label="Scramble actions">
-              <Button type="button" className="min-w-22" onClick={showPreviousScramble} disabled={!canShowPreviousScramble}>
+              <Button
+                type="button"
+                className="min-w-22"
+                onClick={showPreviousScramble}
+                disabled={!canShowPreviousScramble}
+              >
                 Previous
               </Button>
-              <Button type="button" className="min-w-22" onClick={showNextScramble} disabled={!canShowNextScramble}>
+              <Button
+                type="button"
+                className="min-w-22"
+                onClick={showNextScramble}
+                disabled={!canShowNextScramble}
+              >
                 Next
               </Button>
-              <Button type="button" className="min-w-22" onClick={() => void navigator.clipboard?.writeText(scramble)}>
+              <Button
+                type="button"
+                className="min-w-22"
+                onClick={() => void navigator.clipboard?.writeText(scramble)}
+              >
                 Copy
               </Button>
             </div>
@@ -383,7 +436,11 @@ export function App() {
           onResetAll={resetAll}
           onSelectSession={setActiveSession}
         />
-        <SolvesPanel solves={sessionSolves} onDeleteSolve={deleteSolve} onUpdatePenalty={updatePenalty} />
+        <SolvesPanel
+          solves={sessionSolves}
+          onDeleteSolve={deleteSolve}
+          onUpdatePenalty={updatePenalty}
+        />
       </aside>
     </main>
   );
@@ -434,7 +491,10 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
-  return target.closest("button, input, select, textarea, summary, a") !== null || target.isContentEditable;
+  return (
+    target.closest("button, input, select, textarea, summary, a") !== null ||
+    target.isContentEditable
+  );
 }
 
 function isTimerPointer(event: ReactPointerEvent<HTMLElement>): boolean {

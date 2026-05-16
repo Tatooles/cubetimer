@@ -41,7 +41,11 @@ export function loadData(): TimerData {
 
   try {
     const parsed = JSON.parse(stored) as TimerData;
-    if (!Array.isArray(parsed.sessions) || parsed.sessions.length === 0 || !Array.isArray(parsed.solves)) {
+    if (
+      !Array.isArray(parsed.sessions) ||
+      parsed.sessions.length === 0 ||
+      !Array.isArray(parsed.solves)
+    ) {
       return fallback;
     }
 
@@ -63,7 +67,11 @@ export function saveData(data: TimerData): void {
 }
 
 export function exportJson(data: TimerData): void {
-  downloadFile(`cubetimer-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2), "application/json");
+  downloadFile(
+    `cubetimer-${new Date().toISOString().slice(0, 10)}.json`,
+    JSON.stringify(data, null, 2),
+    "application/json",
+  );
 }
 
 export function exportCsv(solves: Solve[]): void {
@@ -73,7 +81,11 @@ export function exportCsv(solves: Solve[]): void {
       .map((value) => `"${String(value).replaceAll('"', '""')}"`)
       .join(","),
   );
-  downloadFile(`cubetimer-solves-${new Date().toISOString().slice(0, 10)}.csv`, [headers.join(","), ...rows].join("\n"), "text/csv");
+  downloadFile(
+    `cubetimer-solves-${new Date().toISOString().slice(0, 10)}.csv`,
+    [headers.join(","), ...rows].join("\n"),
+    "text/csv",
+  );
 }
 
 function downloadFile(filename: string, content: string, type: string): void {
@@ -92,7 +104,12 @@ export async function importTimerData(file: File): Promise<TimerData> {
   const text = await file.text();
   const parsed = JSON.parse(text) as TimerData;
 
-  if (parsed.version !== 1 || !Array.isArray(parsed.sessions) || !Array.isArray(parsed.solves) || parsed.sessions.length === 0) {
+  if (
+    parsed.version !== 1 ||
+    !Array.isArray(parsed.sessions) ||
+    !Array.isArray(parsed.solves) ||
+    parsed.sessions.length === 0
+  ) {
     throw new Error("This file is not a valid CubeTimer export.");
   }
 

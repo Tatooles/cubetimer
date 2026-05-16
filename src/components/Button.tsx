@@ -7,7 +7,13 @@ type ButtonProps = ComponentPropsWithoutRef<"button"> & {
   fullWidth?: boolean;
 };
 
-export function Button({ active = false, className, danger = false, fullWidth = false, ...props }: ButtonProps) {
+export function Button({
+  active = false,
+  className,
+  danger = false,
+  fullWidth = false,
+  ...props
+}: ButtonProps) {
   return (
     <button
       className={classNames(

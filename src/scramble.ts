@@ -36,6 +36,9 @@ export function nextScrambleHistory(history: ScrambleHistory): ScrambleHistory {
   };
 }
 
-export function shouldShowScrambleLoading(history: ScrambleHistory, resetHistory: boolean): boolean {
+export function shouldShowScrambleLoading(
+  history: ScrambleHistory,
+  resetHistory: boolean,
+): boolean {
   return resetHistory || history.entries.length === 0;
 }

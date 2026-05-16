@@ -23,7 +23,13 @@ describe("time formatting and stats", () => {
   });
 
   it("computes best, mean, and trimmed averages with penalties", () => {
-    const solves = [solve(10000, "none", 0), solve(12000, "+2", 1), solve(9000, "none", 2), solve(15000, "none", 3), solve(11000, "none", 4)];
+    const solves = [
+      solve(10000, "none", 0),
+      solve(12000, "+2", 1),
+      solve(9000, "none", 2),
+      solve(15000, "none", 3),
+      solve(11000, "none", 4),
+    ];
 
     expect(bestOf(solves)).toBe("9.00");
     expect(meanOf(solves)).toBe("11.80");
@@ -32,6 +38,11 @@ describe("time formatting and stats", () => {
 
   it("requires enough solves for an average and treats multiple DNFs as DNF", () => {
     expect(averageOf([solve(10000)], 5)).toBe("-");
-    expect(averageOf([solve(10000), solve(12000), solve(11000, "DNF"), solve(9000, "DNF"), solve(13000)], 5)).toBe("DNF");
+    expect(
+      averageOf(
+        [solve(10000), solve(12000), solve(11000, "DNF"), solve(9000, "DNF"), solve(13000)],
+        5,
+      ),
+    ).toBe("DNF");
   });
 });

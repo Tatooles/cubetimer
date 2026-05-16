@@ -2,7 +2,11 @@ import { defineConfig, type ResolveModulePreloadDependenciesFn } from "vite-plus
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-const resolveModulePreloadDependencies: ResolveModulePreloadDependenciesFn = (_filename, deps, { hostId, hostType }) => {
+const resolveModulePreloadDependencies: ResolveModulePreloadDependenciesFn = (
+  _filename,
+  deps,
+  { hostId, hostType },
+) => {
   if (hostType === "js" && isCubingSearchWorker(hostId)) {
     return [];
   }

@@ -5,7 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import { App } from "./App";
 import { generateScramble } from "./scramble";
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
+  true;
 
 vi.mock("./scramble", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./scramble")>();
@@ -42,7 +43,14 @@ describe("App timer input", () => {
     expect(timerDisplay).not.toBeNull();
 
     act(() => {
-      timerDisplay?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, isPrimary: true, pointerId: 1, pointerType: "touch" }));
+      timerDisplay?.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          isPrimary: true,
+          pointerId: 1,
+          pointerType: "touch",
+        }),
+      );
     });
     expect(container.querySelector(".timer-status")?.textContent).toBe("Keep holding");
 
@@ -50,13 +58,29 @@ describe("App timer input", () => {
     expect(container.querySelector(".timer-status")?.textContent).toBe("Release to start");
 
     act(() => {
-      timerDisplay?.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, isPrimary: true, pointerId: 1, pointerType: "touch" }));
+      timerDisplay?.dispatchEvent(
+        new PointerEvent("pointerup", {
+          bubbles: true,
+          isPrimary: true,
+          pointerId: 1,
+          pointerType: "touch",
+        }),
+      );
     });
-    expect(container.querySelector(".timer-status")?.textContent).toBe("Press any key or tap to stop");
+    expect(container.querySelector(".timer-status")?.textContent).toBe(
+      "Press any key or tap to stop",
+    );
 
     act(() => vi.advanceTimersByTime(1234));
     await act(async () => {
-      timerDisplay?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, isPrimary: true, pointerId: 2, pointerType: "touch" }));
+      timerDisplay?.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          isPrimary: true,
+          pointerId: 2,
+          pointerType: "touch",
+        }),
+      );
       await Promise.resolve();
     });
 
@@ -71,17 +95,40 @@ describe("App timer input", () => {
     expect(scrambleActions).not.toBeNull();
 
     act(() => {
-      timerDisplay?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, isPrimary: true, pointerId: 1, pointerType: "touch" }));
+      timerDisplay?.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          isPrimary: true,
+          pointerId: 1,
+          pointerType: "touch",
+        }),
+      );
     });
     act(() => vi.advanceTimersByTime(450));
     act(() => {
-      timerDisplay?.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, isPrimary: true, pointerId: 1, pointerType: "touch" }));
+      timerDisplay?.dispatchEvent(
+        new PointerEvent("pointerup", {
+          bubbles: true,
+          isPrimary: true,
+          pointerId: 1,
+          pointerType: "touch",
+        }),
+      );
     });
-    expect(container.querySelector(".timer-status")?.textContent).toBe("Press any key or tap to stop");
+    expect(container.querySelector(".timer-status")?.textContent).toBe(
+      "Press any key or tap to stop",
+    );
 
     act(() => vi.advanceTimersByTime(1234));
     await act(async () => {
-      scrambleActions?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, isPrimary: true, pointerId: 2, pointerType: "touch" }));
+      scrambleActions?.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          isPrimary: true,
+          pointerId: 2,
+          pointerType: "touch",
+        }),
+      );
       await Promise.resolve();
     });
 
@@ -121,7 +168,9 @@ describe("App timer input", () => {
   });
 
   function buttonNamed(name: string): HTMLButtonElement {
-    const button = Array.from(container.querySelectorAll("button")).find((element) => element.textContent === name);
+    const button = Array.from(container.querySelectorAll("button")).find(
+      (element) => element.textContent === name,
+    );
     expect(button).toBeInstanceOf(HTMLButtonElement);
     return button as HTMLButtonElement;
   }

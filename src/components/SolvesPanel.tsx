@@ -49,7 +49,14 @@ type SolveRowProps = {
   solve: Solve;
 };
 
-function SolveRow({ index, onDelete, onUpdatePenalty, rollingAo12, rollingAo5, solve }: SolveRowProps) {
+function SolveRow({
+  index,
+  onDelete,
+  onUpdatePenalty,
+  rollingAo12,
+  rollingAo5,
+  solve,
+}: SolveRowProps) {
   return (
     <article className="relative grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2.5 rounded-lg border border-[#1d2633] bg-[#101720] p-[11px]">
       <div>

@@ -42,17 +42,29 @@ export function SessionsPanel({
             key={session.id}
             onClick={() => onSelectSession(session.id)}
           >
-            <span className="min-w-0 translate-y-0.5 overflow-hidden leading-[1.1] text-ellipsis whitespace-nowrap">{session.name}</span>
-            <small className="translate-y-0.5 leading-[1.1] text-[#8d99aa]">{getEvent(session.eventId).shortName}</small>
+            <span className="min-w-0 translate-y-0.5 overflow-hidden leading-[1.1] text-ellipsis whitespace-nowrap">
+              {session.name}
+            </span>
+            <small className="translate-y-0.5 leading-[1.1] text-[#8d99aa]">
+              {getEvent(session.eventId).shortName}
+            </small>
           </Button>
         ))}
       </div>
 
       <FieldLabel htmlFor="session-name">Session name</FieldLabel>
-      <TextInput id="session-name" value={activeSession.name} onChange={(event) => onRenameSession(event.target.value)} />
+      <TextInput
+        id="session-name"
+        value={activeSession.name}
+        onChange={(event) => onRenameSession(event.target.value)}
+      />
 
       <FieldLabel htmlFor="event">Event</FieldLabel>
-      <SelectInput id="event" value={activeSession.eventId} onChange={(event) => onChangeEvent(event.target.value as EventId)}>
+      <SelectInput
+        id="event"
+        value={activeSession.eventId}
+        onChange={(event) => onChangeEvent(event.target.value as EventId)}
+      >
         {EVENTS.map((event) => (
           <option value={event.id} key={event.id}>
             {event.name}
