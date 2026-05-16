@@ -5,7 +5,9 @@ import tailwindcss from "@tailwindcss/vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-  fmt: {},
+  fmt: {
+    ignorePatterns: [".vite/**", "dist/**", "docs/claude-design/**"],
+  },
   lint: {
     plugins: ["oxc", "typescript", "unicorn", "react"],
     categories: {
@@ -14,7 +16,7 @@ export default defineConfig({
     env: {
       builtin: true,
     },
-    ignorePatterns: ["dist"],
+    ignorePatterns: [".vite/**", "dist/**", "docs/claude-design/**"],
     overrides: [
       {
         files: ["**/*.{ts,tsx}"],
