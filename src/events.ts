@@ -12,7 +12,15 @@ type EventDefinition = {
 };
 
 export const EVENTS: EventDefinition[] = [
-  { id: "333", name: "3x3x3", shortName: "3x3", scrambleLength: 20, kind: "nxn", size: 3, group: "WCA" },
+  {
+    id: "333",
+    name: "3x3x3",
+    shortName: "3x3",
+    scrambleLength: 20,
+    kind: "nxn",
+    size: 3,
+    group: "WCA",
+  },
   {
     id: "333-lsll",
     name: "3x3x3 Last Slot + Last Layer",

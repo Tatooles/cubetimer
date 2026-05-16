@@ -16,7 +16,9 @@ export async function generate333LSLLScramble(): Promise<string> {
 
   for (let attempt = 0; attempt < 20; attempt++) {
     const pattern = new KPattern(kpuzzle, randomLSLLPatternData());
-    const scramble = normalizeHalfTurns((await experimentalSolve3x3x3IgnoringCenters(pattern)).invert().toString());
+    const scramble = normalizeHalfTurns(
+      (await experimentalSolve3x3x3IgnoringCenters(pattern)).invert().toString(),
+    );
     if (scramble.split(" ").filter(Boolean).length > 3) return scramble;
   }
 
@@ -59,7 +61,11 @@ function applyRandomPermutation(pieces: number[], positions: readonly number[]):
   });
 }
 
-function applyRandomOrientations(orientations: number[], positions: readonly number[], orientationCount: number): void {
+function applyRandomOrientations(
+  orientations: number[],
+  positions: readonly number[],
+  orientationCount: number,
+): void {
   let sum = 0;
   for (let index = 0; index < positions.length - 1; index++) {
     const orientation = randomInt(orientationCount);
@@ -67,7 +73,8 @@ function applyRandomOrientations(orientations: number[], positions: readonly num
     sum += orientation;
   }
 
-  orientations[positions[positions.length - 1]] = (orientationCount - (sum % orientationCount)) % orientationCount;
+  orientations[positions[positions.length - 1]] =
+    (orientationCount - (sum % orientationCount)) % orientationCount;
 }
 
 function shuffle<T>(items: readonly T[]): T[] {
