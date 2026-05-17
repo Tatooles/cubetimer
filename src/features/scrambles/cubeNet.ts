@@ -38,12 +38,12 @@ function moveInfo(face: Face, size: number): { axis: Axis; layer: number; turns:
   const max = size - 1;
   const min = 0;
   const info: Record<Face, { axis: Axis; layer: number; turns: number }> = {
-    U: { axis: "y", layer: max, turns: 1 },
-    D: { axis: "y", layer: min, turns: -1 },
-    R: { axis: "x", layer: max, turns: 1 },
-    L: { axis: "x", layer: min, turns: -1 },
-    F: { axis: "z", layer: max, turns: 1 },
-    B: { axis: "z", layer: min, turns: -1 },
+    U: { axis: "y", layer: max, turns: -1 },
+    D: { axis: "y", layer: min, turns: 1 },
+    R: { axis: "x", layer: max, turns: -1 },
+    L: { axis: "x", layer: min, turns: 1 },
+    F: { axis: "z", layer: max, turns: -1 },
+    B: { axis: "z", layer: min, turns: 1 },
   };
   return info[face];
 }
