@@ -13,6 +13,7 @@ import { downloadCsv, solvesToCsv } from "./features/sessions/csvExport";
 import {
   APP_STORAGE_KEY,
   activeSession,
+  createDemoAppState,
   createSolve,
   defaultAppState,
   sanitizeState,
@@ -63,10 +64,16 @@ function Module({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+function initialAppState(): AppState {
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).get("demo") === "1") {
+    return createDemoAppState();
+  }
+
+  return sanitizeState(readJson(APP_STORAGE_KEY, defaultAppState()));
+}
+
 function App() {
-  const [state, setState] = useState<AppState>(() =>
-    sanitizeState(readJson(APP_STORAGE_KEY, defaultAppState())),
-  );
+  const [state, setState] = useState<AppState>(initialAppState);
   const [scrambleError, setScrambleError] = useState<string | null>(null);
   const [scrambleLoading, setScrambleLoading] = useState(false);
   const [selectedSolveId, setSelectedSolveId] = useState<string | null>(null);
@@ -98,6 +105,12 @@ function App() {
       return { ...current, currentScramble: result.scramble };
     });
   }, []);
+
+  useEffect(() => {
+    if (!state.currentScramble && !scrambleLoading) {
+      void requestScramble(state.eventId);
+    }
+  }, [requestScramble, scrambleLoading, state.currentScramble, state.eventId]);
 
   const recordSolve = useCallback(
     (ms: number) => {

@@ -31,34 +31,39 @@ export function createSolve(ms: number, eventId: PuzzleEvent, scramble: string):
   };
 }
 
-export function createDemoSession(): Session {
-  const now = Date.now();
-  return {
-    id: "main",
-    name: "Main",
-    solves: DEMO_TIMES.map((ms, index) => ({
-      id: `seed-${index}`,
-      ms,
-      eventId: "333",
-      scramble: DEMO_SCRAMBLES[index % DEMO_SCRAMBLES.length],
-      timestamp: now - (DEMO_TIMES.length - index) * 45_000,
-      penalty: index === 11 ? "+2" : index === 24 ? "DNF" : "OK",
-      comment: index === 4 ? "Clean F2L" : undefined,
-    })),
-  };
-}
-
 export function defaultAppState(): AppState {
   return {
     eventId: "333",
     selectedSessionId: "main",
+    sessions: [{ id: "main", name: "Main", solves: [] }],
+    currentScramble: "",
+    settings: DEFAULT_SETTINGS,
+  };
+}
+
+export function createDemoAppState(): AppState {
+  const now = Date.now();
+
+  return {
+    ...defaultAppState(),
     sessions: [
-      createDemoSession(),
+      {
+        id: "main",
+        name: "Main",
+        solves: DEMO_TIMES.map((ms, index) => ({
+          id: `demo-${index}`,
+          ms,
+          eventId: "333",
+          scramble: DEMO_SCRAMBLES[index % DEMO_SCRAMBLES.length],
+          timestamp: now - (DEMO_TIMES.length - index) * 45_000,
+          penalty: index === 11 ? "+2" : index === 24 ? "DNF" : "OK",
+          comment: index === 4 ? "Clean F2L" : undefined,
+        })),
+      },
       { id: "practice-oh", name: "OH practice", solves: [] },
       { id: "big-cubes", name: "Big cubes", solves: [] },
     ],
     currentScramble: DEMO_SCRAMBLES[0],
-    settings: DEFAULT_SETTINGS,
   };
 }
 
