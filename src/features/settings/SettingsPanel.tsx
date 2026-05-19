@@ -76,14 +76,6 @@ export function SettingsPanel({
             label="Toggle scramble draw"
           />
         </div>
-        <div className="flex items-center justify-between">
-          <span>Inspection</span>
-          <Toggle
-            checked={settings.inspection}
-            onChange={(value) => update("inspection", value)}
-            label="Toggle inspection"
-          />
-        </div>
       </div>
     </section>
   );

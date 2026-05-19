@@ -5,5 +5,4 @@ export const DEFAULT_SETTINGS: TimerSettings = {
   showGraph: true,
   showHistogram: true,
   showDraw: true,
-  inspection: false,
 };

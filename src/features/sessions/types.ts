@@ -38,7 +38,6 @@ export type TimerSettings = {
   showGraph: boolean;
   showHistogram: boolean;
   showDraw: boolean;
-  inspection: boolean;
 };
 
 export type AppState = {

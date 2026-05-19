@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vite-plus/test";
-import { createDemoAppState, defaultAppState, sanitizeState } from "./sessionStore";
+import {
+  createDemoAppState,
+  defaultAppState,
+  migrateLegacyState,
+  sanitizeState,
+} from "./sessionStore";
 import type { AppState } from "./types";
 
 describe("session store defaults", () => {
@@ -79,5 +84,78 @@ describe("session store defaults", () => {
       { id: "big-cubes", name: "Big cubes", solves: [] },
     ]);
     expect(state.currentScramble).toBe("R U R' F2 D L2 B' U2 R2 F D'");
+  });
+
+  test("migrates legacy cubetimer data into the current app state", () => {
+    const state = migrateLegacyState({
+      event: "333oh",
+      session: "archive",
+      currentScramble: "U R F",
+      sessions: {
+        main: {
+          name: "Main",
+          solves: [
+            {
+              id: "legacy-main",
+              ms: 12_340,
+              scramble: "R U R'",
+              ts: 1_700_000_000_000,
+              penalty: null,
+              event: "333",
+            },
+          ],
+        },
+        archive: {
+          name: "Archive",
+          solves: [
+            {
+              id: "legacy-archive",
+              time: "9870",
+              scramble: "F R U",
+              timestamp: "2026-05-01T12:00:00.000Z",
+              penalty: "+2",
+              comment: "PB",
+              eventId: "222",
+            },
+          ],
+        },
+      },
+    });
+
+    expect(state?.eventId).toBe("333oh");
+    expect(state?.selectedSessionId).toBe("archive");
+    expect(state?.currentScramble).toBe("U R F");
+    expect(state?.sessions).toEqual([
+      {
+        id: "main",
+        name: "Main",
+        solves: [
+          {
+            id: "legacy-main",
+            ms: 12_340,
+            eventId: "333",
+            scramble: "R U R'",
+            timestamp: 1_700_000_000_000,
+            penalty: "OK",
+            comment: undefined,
+          },
+        ],
+      },
+      {
+        id: "archive",
+        name: "Archive",
+        solves: [
+          {
+            id: "legacy-archive",
+            ms: 9_870,
+            eventId: "222",
+            scramble: "F R U",
+            timestamp: Date.parse("2026-05-01T12:00:00.000Z"),
+            penalty: "+2",
+            comment: "PB",
+          },
+        ],
+      },
+    ]);
   });
 });

@@ -13,10 +13,12 @@ import { SessionSidebar } from "./features/sessions/SessionSidebar";
 import { downloadCsv, solvesToCsv } from "./features/sessions/csvExport";
 import {
   APP_STORAGE_KEY,
+  LEGACY_STORAGE_KEY,
   activeSession,
   createDemoAppState,
   createSolve,
   defaultAppState,
+  migrateLegacyState,
   sanitizeState,
 } from "./features/sessions/sessionStore";
 import { sessionStats } from "./features/sessions/solveStats";
@@ -70,7 +72,12 @@ function initialAppState(): AppState {
     return createDemoAppState();
   }
 
-  return sanitizeState(readJson(APP_STORAGE_KEY, defaultAppState()));
+  const storedState = readJson<AppState | null>(APP_STORAGE_KEY, null);
+  if (storedState) {
+    return sanitizeState(storedState);
+  }
+
+  return migrateLegacyState(readJson<unknown>(LEGACY_STORAGE_KEY, null)) ?? defaultAppState();
 }
 
 function App() {
