@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Histogram } from "./features/analytics/Histogram";
 import { ProgressChart } from "./features/analytics/ProgressChart";
 import { MobileNav, type MobileSheetId } from "./features/mobile/MobileNav";
 import { MobileSheet } from "./features/mobile/MobileSheet";
 import { ScrambleBar } from "./features/scrambles/ScrambleBar";
 import { ScrambleDraw } from "./features/scrambles/ScrambleDraw";
+import { canApplyScrambleResult, hasReadyScramble } from "./features/scrambles/scrambleGuards";
 import { generateScramble } from "./features/scrambles/scrambleService";
 import { SettingsPanel } from "./features/settings/SettingsPanel";
 import { SolveDetailModal } from "./features/sessions/SolveDetailModal";
@@ -80,6 +81,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [activeSheet, setActiveSheet] = useState<MobileSheetId>(null);
+  const scrambleRequestIdRef = useRef(0);
 
   const session = activeSession(state);
   const stats = useMemo(() => sessionStats(session.solves), [session.solves]);
@@ -93,11 +95,28 @@ function App() {
   }, [state]);
 
   const requestScramble = useCallback(async (eventId: PuzzleEvent) => {
+    const requestId = scrambleRequestIdRef.current + 1;
+    scrambleRequestIdRef.current = requestId;
     setScrambleLoading(true);
     const result = await generateScramble(eventId);
+    if (requestId !== scrambleRequestIdRef.current) {
+      return;
+    }
+
     setScrambleLoading(false);
     setScrambleError(result.error ?? null);
     setState((current) => {
+      if (
+        !canApplyScrambleResult({
+          requestId,
+          latestRequestId: scrambleRequestIdRef.current,
+          requestedEventId: eventId,
+          currentEventId: current.eventId,
+        })
+      ) {
+        return current;
+      }
+
       if (result.error && current.currentScramble) {
         return current;
       }
@@ -131,10 +150,17 @@ function App() {
   );
 
   const timer = useTimerController(recordSolve);
+  const scrambleReady = hasReadyScramble(state.currentScramble, scrambleLoading);
+  const pressTimer = useCallback(() => {
+    if (timer.stage === "running" || scrambleReady) {
+      timer.press();
+    }
+  }, [scrambleReady, timer]);
 
   const setEvent = useCallback(
     (eventId: PuzzleEvent) => {
-      setState((current) => ({ ...current, eventId }));
+      setScrambleError(null);
+      setState((current) => ({ ...current, eventId, currentScramble: "" }));
       void requestScramble(eventId);
     },
     [requestScramble],
@@ -190,7 +216,7 @@ function App() {
       if (event.code === "Space") {
         event.preventDefault();
         if (!event.repeat) {
-          timer.press();
+          pressTimer();
         }
       } else if (event.key === "n" || event.key === "N") {
         void requestScramble(state.eventId);
@@ -216,7 +242,7 @@ function App() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [requestScramble, state.eventId, timer, toggleLastPenalty]);
+  }, [pressTimer, requestScramble, state.eventId, timer, toggleLastPenalty]);
 
   const bests = useMemo(
     () =>
@@ -331,7 +357,7 @@ function App() {
               stage={timer.stage}
               elapsedMs={timer.elapsedMs}
               bests={bests}
-              onPress={timer.press}
+              onPress={pressTimer}
               onRelease={timer.release}
             />
           </div>
