@@ -179,7 +179,16 @@ describe("session store defaults", () => {
       ],
       solves: [
         {
-          id: "solve-main",
+          id: "solve-main-new",
+          sessionId: "session-main",
+          eventId: "333",
+          timeMs: 13_210,
+          penalty: "+2",
+          scramble: "U F R",
+          createdAt: "2026-05-04T12:00:00.000Z",
+        },
+        {
+          id: "solve-main-old",
           sessionId: "session-main",
           eventId: "333",
           timeMs: 12_340,
@@ -200,6 +209,7 @@ describe("session store defaults", () => {
       ],
     });
 
+    expect(state?.eventId).toBe("333oh");
     expect(state?.selectedSessionId).toBe("session-oh");
     expect(state?.sessions).toEqual([
       {
@@ -207,12 +217,21 @@ describe("session store defaults", () => {
         name: "Main session",
         solves: [
           {
-            id: "solve-main",
+            id: "solve-main-old",
             ms: 12_340,
             eventId: "333",
             scramble: "R U R'",
             timestamp: Date.parse("2026-05-03T12:00:00.000Z"),
             penalty: "OK",
+            comment: undefined,
+          },
+          {
+            id: "solve-main-new",
+            ms: 13_210,
+            eventId: "333",
+            scramble: "U F R",
+            timestamp: Date.parse("2026-05-04T12:00:00.000Z"),
+            penalty: "+2",
             comment: undefined,
           },
         ],

@@ -111,6 +111,11 @@ function puzzleEventValue(value: unknown, fallback: PuzzleEvent): PuzzleEvent {
   return LEGACY_EVENT_IDS[value] ?? fallback;
 }
 
+function optionalPuzzleEventValue(value: unknown): PuzzleEvent | null {
+  const eventId = puzzleEventValue(value, "333");
+  return eventId === "333" && value !== "333" ? null : eventId;
+}
+
 function penaltyValue(value: unknown): Penalty {
   return value === "+2" || value === "DNF" ? value : "OK";
 }
@@ -175,6 +180,20 @@ function sessionScopedSolves(solves: unknown[], sessionId: string): unknown[] {
   return solves.filter((solve) => isRecord(solve) && solve.sessionId === sessionId);
 }
 
+function legacySessionEvent(value: unknown, sessionId: string): PuzzleEvent | null {
+  if (Array.isArray(value)) {
+    const session = value.find((candidate) => isRecord(candidate) && candidate.id === sessionId);
+    return isRecord(session) ? optionalPuzzleEventValue(session.eventId ?? session.event) : null;
+  }
+
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const session = value[sessionId];
+  return isRecord(session) ? optionalPuzzleEventValue(session.eventId ?? session.event) : null;
+}
+
 function migrateLegacySessions(
   value: unknown,
   fallbackEventId: PuzzleEvent,
@@ -217,13 +236,18 @@ export function migrateLegacyState(value: unknown): AppState | null {
     return null;
   }
 
-  const eventId = puzzleEventValue(value.eventId ?? value.event, "333");
-  const topLevelSolves = Array.isArray(value.solves) ? value.solves : [];
-  const migratedSessions = migrateLegacySessions(value.sessions, eventId, topLevelSolves);
+  const topLevelEventId = optionalPuzzleEventValue(value.eventId ?? value.event);
+  const fallbackEventId = topLevelEventId ?? "333";
+  const topLevelSolves = Array.isArray(value.solves) ? [...value.solves].reverse() : [];
+  const migratedSessions = migrateLegacySessions(value.sessions, fallbackEventId, topLevelSolves);
   const sessions =
     migratedSessions.length > 0
       ? migratedSessions
-      : migrateLegacySession({ id: "main", name: "Main", solves: topLevelSolves }, "main", eventId);
+      : migrateLegacySession(
+          { id: "main", name: "Main", solves: topLevelSolves },
+          "main",
+          fallbackEventId,
+        );
 
   const sessionList = Array.isArray(sessions) ? sessions : sessions == null ? [] : [sessions];
   if (sessionList.length === 0) {
@@ -234,6 +258,7 @@ export function migrateLegacyState(value: unknown): AppState | null {
     value.selectedSessionId ?? value.activeSessionId ?? value.session,
     sessionList[0].id,
   );
+  const eventId = topLevelEventId ?? legacySessionEvent(value.sessions, selectedSessionId) ?? "333";
 
   return sanitizeState({
     ...defaultAppState(),
