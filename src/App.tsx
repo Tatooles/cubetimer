@@ -124,10 +124,6 @@ function App() {
         return current;
       }
 
-      if (result.error && current.currentScramble) {
-        return current;
-      }
-
       return { ...current, currentScramble: result.scramble };
     });
   }, []);
