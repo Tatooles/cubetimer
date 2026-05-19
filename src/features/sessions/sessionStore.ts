@@ -17,6 +17,11 @@ const PUZZLE_EVENT_IDS = new Set<PuzzleEvent>([
   "sq1",
   "clock",
 ]);
+const LEGACY_EVENT_IDS: Record<string, PuzzleEvent> = {
+  "333bf": "333bld",
+  pyram: "pyra",
+  minx: "mega",
+};
 
 export const APP_STORAGE_KEY = `cube-timer-studio-v${STORAGE_VERSION}`;
 export const LEGACY_STORAGE_KEY = "cubetimer:data";
@@ -95,9 +100,15 @@ function timestampValue(value: unknown): number {
 }
 
 function puzzleEventValue(value: unknown, fallback: PuzzleEvent): PuzzleEvent {
-  return typeof value === "string" && PUZZLE_EVENT_IDS.has(value as PuzzleEvent)
-    ? (value as PuzzleEvent)
-    : fallback;
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  if (PUZZLE_EVENT_IDS.has(value as PuzzleEvent)) {
+    return value as PuzzleEvent;
+  }
+
+  return LEGACY_EVENT_IDS[value] ?? fallback;
 }
 
 function penaltyValue(value: unknown): Penalty {
@@ -113,15 +124,17 @@ function migrateLegacySolve(
     return null;
   }
 
-  const ms = numberValue(value.ms ?? value.time ?? value.elapsedMs ?? value.duration);
+  const ms = numberValue(
+    value.ms ?? value.timeMs ?? value.time ?? value.elapsedMs ?? value.duration,
+  );
   if (ms == null || ms <= 0) {
     return null;
   }
 
-  const timestamp = timestampValue(value.timestamp ?? value.ts ?? value.date);
+  const timestamp = timestampValue(value.timestamp ?? value.ts ?? value.createdAt ?? value.date);
   const id = stringValue(value.id, `legacy-${timestamp}-${index}`);
   const scramble = stringValue(value.scramble);
-  const comment = stringValue(value.comment);
+  const comment = stringValue(value.comment ?? value.note);
 
   return {
     id,
@@ -138,29 +151,47 @@ function migrateLegacySession(
   value: unknown,
   fallbackId: string,
   fallbackEventId: PuzzleEvent,
+  topLevelSolves: unknown[] = [],
 ): Session | null {
   if (!isRecord(value)) {
     return null;
   }
 
-  const rawSolves = Array.isArray(value.solves) ? value.solves : [];
+  const sessionId = stringValue(value.id, fallbackId);
+  const sessionEventId = puzzleEventValue(value.eventId ?? value.event, fallbackEventId);
+  const rawSolves = [...(Array.isArray(value.solves) ? value.solves : []), ...topLevelSolves];
   const solves = rawSolves
-    .map((solve, index) => migrateLegacySolve(solve, index, fallbackEventId))
+    .map((solve, index) => migrateLegacySolve(solve, index, sessionEventId))
     .filter((solve): solve is Solve => solve != null);
 
   return {
-    id: stringValue(value.id, fallbackId),
+    id: sessionId,
     name: stringValue(value.name, fallbackId === "main" ? "Main" : fallbackId),
     solves,
   };
 }
 
-function migrateLegacySessions(value: unknown, fallbackEventId: PuzzleEvent): Session[] {
+function sessionScopedSolves(solves: unknown[], sessionId: string): unknown[] {
+  return solves.filter((solve) => isRecord(solve) && solve.sessionId === sessionId);
+}
+
+function migrateLegacySessions(
+  value: unknown,
+  fallbackEventId: PuzzleEvent,
+  topLevelSolves: unknown[] = [],
+): Session[] {
   if (Array.isArray(value)) {
     return value
-      .map((session, index) =>
-        migrateLegacySession(session, `session-${index + 1}`, fallbackEventId),
-      )
+      .map((session, index) => {
+        const fallbackId = `session-${index + 1}`;
+        const sessionId = isRecord(session) ? stringValue(session.id, fallbackId) : fallbackId;
+        return migrateLegacySession(
+          session,
+          sessionId,
+          fallbackEventId,
+          sessionScopedSolves(topLevelSolves, sessionId),
+        );
+      })
       .filter((session): session is Session => session != null);
   }
 
@@ -169,7 +200,15 @@ function migrateLegacySessions(value: unknown, fallbackEventId: PuzzleEvent): Se
   }
 
   return Object.entries(value)
-    .map(([id, session]) => migrateLegacySession(session, id, fallbackEventId))
+    .map(([id, session]) => {
+      const sessionId = isRecord(session) ? stringValue(session.id, id) : id;
+      return migrateLegacySession(
+        session,
+        id,
+        fallbackEventId,
+        sessionScopedSolves(topLevelSolves, sessionId),
+      );
+    })
     .filter((session): session is Session => session != null);
 }
 
@@ -179,11 +218,12 @@ export function migrateLegacyState(value: unknown): AppState | null {
   }
 
   const eventId = puzzleEventValue(value.eventId ?? value.event, "333");
-  const migratedSessions = migrateLegacySessions(value.sessions, eventId);
+  const topLevelSolves = Array.isArray(value.solves) ? value.solves : [];
+  const migratedSessions = migrateLegacySessions(value.sessions, eventId, topLevelSolves);
   const sessions =
     migratedSessions.length > 0
       ? migratedSessions
-      : migrateLegacySession({ id: "main", name: "Main", solves: value.solves }, "main", eventId);
+      : migrateLegacySession({ id: "main", name: "Main", solves: topLevelSolves }, "main", eventId);
 
   const sessionList = Array.isArray(sessions) ? sessions : sessions == null ? [] : [sessions];
   if (sessionList.length === 0) {

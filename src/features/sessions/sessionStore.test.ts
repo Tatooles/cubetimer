@@ -158,4 +158,80 @@ describe("session store defaults", () => {
       },
     ]);
   });
+
+  test("groups top-level legacy solves by session id", () => {
+    const state = migrateLegacyState({
+      version: 1,
+      activeSessionId: "session-oh",
+      sessions: [
+        {
+          id: "session-main",
+          name: "Main session",
+          eventId: "333",
+          createdAt: "2026-05-01T12:00:00.000Z",
+        },
+        {
+          id: "session-oh",
+          name: "OH",
+          eventId: "333oh",
+          createdAt: "2026-05-02T12:00:00.000Z",
+        },
+      ],
+      solves: [
+        {
+          id: "solve-main",
+          sessionId: "session-main",
+          eventId: "333",
+          timeMs: 12_340,
+          penalty: "none",
+          scramble: "R U R'",
+          createdAt: "2026-05-03T12:00:00.000Z",
+        },
+        {
+          id: "solve-oh",
+          sessionId: "session-oh",
+          eventId: "333bf",
+          timeMs: 45_670,
+          penalty: "DNF",
+          scramble: "F R U",
+          createdAt: "2026-05-04T12:00:00.000Z",
+          note: "blind attempt",
+        },
+      ],
+    });
+
+    expect(state?.selectedSessionId).toBe("session-oh");
+    expect(state?.sessions).toEqual([
+      {
+        id: "session-main",
+        name: "Main session",
+        solves: [
+          {
+            id: "solve-main",
+            ms: 12_340,
+            eventId: "333",
+            scramble: "R U R'",
+            timestamp: Date.parse("2026-05-03T12:00:00.000Z"),
+            penalty: "OK",
+            comment: undefined,
+          },
+        ],
+      },
+      {
+        id: "session-oh",
+        name: "OH",
+        solves: [
+          {
+            id: "solve-oh",
+            ms: 45_670,
+            eventId: "333bld",
+            scramble: "F R U",
+            timestamp: Date.parse("2026-05-04T12:00:00.000Z"),
+            penalty: "DNF",
+            comment: "blind attempt",
+          },
+        ],
+      },
+    ]);
+  });
 });
