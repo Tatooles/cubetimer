@@ -31,6 +31,22 @@ export function createSolve(ms: number, eventId: PuzzleEvent, scramble: string):
   };
 }
 
+export function recordSolveInState(state: AppState, ms: number): AppState {
+  if (!state.currentScramble.trim()) {
+    return state;
+  }
+
+  const solve = createSolve(ms, state.eventId, state.currentScramble);
+  return {
+    ...state,
+    sessions: state.sessions.map((session) =>
+      session.id === state.selectedSessionId
+        ? { ...session, solves: [...session.solves, solve] }
+        : session,
+    ),
+  };
+}
+
 export function defaultAppState(): AppState {
   return {
     eventId: "333",

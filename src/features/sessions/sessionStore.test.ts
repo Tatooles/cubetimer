@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vite-plus/test";
-import { createDemoAppState, defaultAppState, sanitizeState } from "./sessionStore";
+import {
+  createDemoAppState,
+  defaultAppState,
+  recordSolveInState,
+  sanitizeState,
+} from "./sessionStore";
 import type { AppState } from "./types";
 
 describe("session store defaults", () => {
@@ -79,5 +84,13 @@ describe("session store defaults", () => {
       { id: "big-cubes", name: "Big cubes", solves: [] },
     ]);
     expect(state.currentScramble).toBe("R U R' F2 D L2 B' U2 R2 F D'");
+  });
+});
+
+describe("solve recording", () => {
+  test("does not record solves before a scramble is available", () => {
+    const state = defaultAppState();
+
+    expect(recordSolveInState(state, 12_345).sessions[0].solves).toHaveLength(0);
   });
 });

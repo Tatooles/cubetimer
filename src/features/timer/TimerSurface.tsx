@@ -7,7 +7,7 @@ type TimerSurfaceProps = {
   stage: TimerStage;
   elapsedMs: number;
   bests: Array<{ label: string; value: string }>;
-  onPress: () => void;
+  onPress?: () => void;
   onRelease: () => void;
 };
 
@@ -40,11 +40,14 @@ export function TimerSurface({ stage, elapsedMs, bests, onPress, onRelease }: Ti
 
   return (
     <section
-      className={`relative flex flex-1 cursor-pointer select-none flex-col items-center justify-center overflow-hidden transition ${
+      className={`relative flex flex-1 select-none flex-col items-center justify-center overflow-hidden transition ${
         stage === "holding" ? "bg-red-500/5" : stage === "ready" ? "bg-emerald-500/5" : ""
-      }`}
+      } ${onPress ? "cursor-pointer" : "cursor-default"}`}
       onPointerDown={(event) => {
         if ((event.target as HTMLElement).closest("button")) {
+          return;
+        }
+        if (!onPress) {
           return;
         }
         event.currentTarget.setPointerCapture(event.pointerId);

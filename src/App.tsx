@@ -15,8 +15,8 @@ import {
   APP_STORAGE_KEY,
   activeSession,
   createDemoAppState,
-  createSolve,
   defaultAppState,
+  recordSolveInState,
   sanitizeState,
 } from "./features/sessions/sessionStore";
 import { sessionStats } from "./features/sessions/solveStats";
@@ -118,23 +118,16 @@ function App() {
 
   const recordSolve = useCallback(
     (ms: number) => {
-      setState((current) => {
-        const solve = createSolve(ms, current.eventId, current.currentScramble);
-        return {
-          ...current,
-          sessions: current.sessions.map((candidate) =>
-            candidate.id === current.selectedSessionId
-              ? { ...candidate, solves: [...candidate.solves, solve] }
-              : candidate,
-          ),
-        };
-      });
-      void requestScramble(state.eventId);
+      setState((current) => recordSolveInState(current, ms));
+      if (state.currentScramble.trim()) {
+        void requestScramble(state.eventId);
+      }
     },
-    [requestScramble, state.eventId],
+    [requestScramble, state.currentScramble, state.eventId],
   );
 
   const timer = useTimerController(recordSolve);
+  const timerInputEnabled = state.currentScramble.trim().length > 0 && !scrambleLoading;
 
   const setEvent = useCallback(
     (eventId: PuzzleEvent) => {
@@ -193,7 +186,7 @@ function App() {
 
       if (event.code === "Space") {
         event.preventDefault();
-        if (!event.repeat) {
+        if (!event.repeat && timerInputEnabled) {
           timer.press();
         }
       } else if (event.key === "n" || event.key === "N") {
@@ -220,7 +213,7 @@ function App() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [requestScramble, state.eventId, timer, toggleLastPenalty]);
+  }, [requestScramble, state.eventId, timer, timerInputEnabled, toggleLastPenalty]);
 
   const bests = useMemo(
     () =>
@@ -335,7 +328,7 @@ function App() {
               stage={timer.stage}
               elapsedMs={timer.elapsedMs}
               bests={bests}
-              onPress={timer.press}
+              onPress={timerInputEnabled ? timer.press : undefined}
               onRelease={timer.release}
             />
           </div>
