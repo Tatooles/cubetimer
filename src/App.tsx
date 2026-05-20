@@ -129,13 +129,18 @@ function App() {
 
   const timer = useTimerController(recordSolve);
   const timerInputEnabled = state.currentScramble.trim().length > 0 && !scrambleLoading;
+  const timerLocked = timer.stage === "running";
 
   const setEvent = useCallback(
     (eventId: PuzzleEvent) => {
+      if (timerLocked) {
+        return;
+      }
+
       setState((current) => ({ ...current, eventId }));
       void requestScramble(eventId);
     },
-    [requestScramble],
+    [requestScramble, timerLocked],
   );
 
   const toggleLastPenalty = useCallback((penalty: Penalty) => {
@@ -226,6 +231,10 @@ function App() {
   );
 
   function createSession() {
+    if (timerLocked) {
+      return;
+    }
+
     const name = window.prompt("Session name", "New session");
     if (!name) {
       return;
@@ -240,6 +249,10 @@ function App() {
   }
 
   function clearSession() {
+    if (timerLocked) {
+      return;
+    }
+
     if (!window.confirm("Clear all solves in this session?")) {
       return;
     }
@@ -303,9 +316,14 @@ function App() {
           sessions={state.sessions}
           activeSessionId={state.selectedSessionId}
           mobileOpen={activeSheet === "session"}
-          onSessionChange={(sessionId) =>
-            setState((current) => ({ ...current, selectedSessionId: sessionId }))
-          }
+          disabled={timerLocked}
+          onSessionChange={(sessionId) => {
+            if (timerLocked) {
+              return;
+            }
+
+            setState((current) => ({ ...current, selectedSessionId: sessionId }));
+          }}
           onNewSession={createSession}
           onClear={clearSession}
           onExport={exportSession}
@@ -321,8 +339,15 @@ function App() {
               scramble={state.currentScramble}
               isLoading={scrambleLoading}
               error={scrambleError}
+              disabled={timerLocked}
               onEventChange={setEvent}
-              onNext={() => void requestScramble(state.eventId)}
+              onNext={() => {
+                if (timerLocked) {
+                  return;
+                }
+
+                void requestScramble(state.eventId);
+              }}
               onCopy={() => void navigator.clipboard?.writeText(state.currentScramble)}
             />
             <TimerSurface

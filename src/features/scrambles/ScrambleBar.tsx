@@ -6,6 +6,7 @@ type ScrambleBarProps = {
   scramble: string;
   isLoading: boolean;
   error: string | null;
+  disabled?: boolean;
   onEventChange: (eventId: PuzzleEvent) => void;
   onNext: () => void;
   onCopy: () => void;
@@ -16,6 +17,7 @@ export function ScrambleBar({
   scramble,
   isLoading,
   error,
+  disabled = false,
   onEventChange,
   onNext,
   onCopy,
@@ -36,6 +38,7 @@ export function ScrambleBar({
       <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
         <select
           value={eventId}
+          disabled={disabled}
           onChange={(event) => onEventChange(event.target.value as PuzzleEvent)}
           className="rounded-md border border-white/10 bg-black px-2.5 py-1.5 font-mono text-xs text-zinc-200 outline-none focus:border-indigo-400"
         >
@@ -45,7 +48,7 @@ export function ScrambleBar({
             </option>
           ))}
         </select>
-        <button type="button" onClick={onNext} className="scramble-action">
+        <button type="button" disabled={disabled} onClick={onNext} className="scramble-action">
           Next
         </button>
         <button type="button" onClick={onCopy} className="scramble-action">

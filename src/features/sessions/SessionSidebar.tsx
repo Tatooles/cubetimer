@@ -8,6 +8,7 @@ type SessionSidebarProps = {
   sessions: Session[];
   activeSessionId: string;
   mobileOpen?: boolean;
+  disabled?: boolean;
   onSessionChange: (sessionId: string) => void;
   onNewSession: () => void;
   onClear: () => void;
@@ -23,6 +24,7 @@ export function SessionSidebar({
   sessions,
   activeSessionId,
   mobileOpen = false,
+  disabled = false,
   onSessionChange,
   onNewSession,
   onClear,
@@ -48,6 +50,7 @@ export function SessionSidebar({
         </div>
         <select
           value={activeSessionId}
+          disabled={disabled}
           onChange={(event) => onSessionChange(event.target.value)}
           className="w-full bg-transparent text-sm font-semibold text-zinc-100 outline-none"
         >
@@ -108,13 +111,18 @@ export function SessionSidebar({
         onDelete={onDelete}
       />
       <div className="flex gap-2 border-t border-white/[0.07] px-5 py-3 md:px-6">
-        <button type="button" onClick={onNewSession} className="sidebar-button">
+        <button type="button" disabled={disabled} onClick={onNewSession} className="sidebar-button">
           New
         </button>
         <button type="button" onClick={onExport} className="sidebar-button">
           Export
         </button>
-        <button type="button" onClick={onClear} className="sidebar-button text-red-300">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onClear}
+          className="sidebar-button text-red-300"
+        >
           Clear
         </button>
       </div>
