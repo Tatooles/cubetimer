@@ -6,6 +6,7 @@ import { MobileSheet } from "./features/mobile/MobileSheet";
 import { ScrambleBar } from "./features/scrambles/ScrambleBar";
 import { ScrambleDraw } from "./features/scrambles/ScrambleDraw";
 import { generateScramble } from "./features/scrambles/scrambleService";
+import { applyScrambleResult } from "./features/scrambles/scrambleState";
 import { SettingsPanel } from "./features/settings/SettingsPanel";
 import { SolveDetailModal } from "./features/sessions/SolveDetailModal";
 import { SessionSidebar } from "./features/sessions/SessionSidebar";
@@ -106,13 +107,7 @@ function App() {
 
     setScrambleLoading(false);
     setScrambleError(result.error ?? null);
-    setState((current) => {
-      if (result.error && current.currentScramble) {
-        return current;
-      }
-
-      return { ...current, currentScramble: result.scramble };
-    });
+    setState((current) => applyScrambleResult(current, result));
   }, []);
 
   useEffect(() => {
