@@ -83,12 +83,23 @@ export function createDemoAppState(): AppState {
   };
 }
 
-export function sanitizeState(state: AppState): AppState {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function sanitizeState(value: unknown): AppState {
   const fallback = defaultAppState();
+  if (!isRecord(value)) {
+    return fallback;
+  }
+
+  const state = value as Partial<AppState>;
   const sessions = state.sessions?.length ? state.sessions : fallback.sessions;
-  const selectedSessionId = sessions.some((session) => session.id === state.selectedSessionId)
-    ? state.selectedSessionId
-    : sessions[0].id;
+  const selectedSessionId =
+    typeof state.selectedSessionId === "string" &&
+    sessions.some((session) => session.id === state.selectedSessionId)
+      ? state.selectedSessionId
+      : sessions[0].id;
 
   return {
     ...fallback,

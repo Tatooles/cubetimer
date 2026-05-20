@@ -85,6 +85,10 @@ describe("session store defaults", () => {
     ]);
     expect(state.currentScramble).toBe("R U R' F2 D L2 B' U2 R2 F D'");
   });
+
+  test("falls back to default state for non-object storage payloads", () => {
+    expect(sanitizeState(null)).toEqual(defaultAppState());
+  });
 });
 
 describe("solve recording", () => {
