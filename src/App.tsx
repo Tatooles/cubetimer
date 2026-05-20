@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Histogram } from "./features/analytics/Histogram";
 import { ProgressChart } from "./features/analytics/ProgressChart";
 import { MobileNav, type MobileSheetId } from "./features/mobile/MobileNav";
 import { MobileSheet } from "./features/mobile/MobileSheet";
 import { ScrambleBar } from "./features/scrambles/ScrambleBar";
 import { ScrambleDraw } from "./features/scrambles/ScrambleDraw";
-import { canApplyScrambleResult, hasReadyScramble } from "./features/scrambles/scrambleGuards";
 import { generateScramble } from "./features/scrambles/scrambleService";
 import { SettingsPanel } from "./features/settings/SettingsPanel";
 import { SolveDetailModal } from "./features/sessions/SolveDetailModal";
@@ -13,12 +12,10 @@ import { SessionSidebar } from "./features/sessions/SessionSidebar";
 import { downloadCsv, solvesToCsv } from "./features/sessions/csvExport";
 import {
   APP_STORAGE_KEY,
-  LEGACY_STORAGE_KEY,
   activeSession,
   createDemoAppState,
   createSolve,
   defaultAppState,
-  migrateLegacyState,
   sanitizeState,
 } from "./features/sessions/sessionStore";
 import { sessionStats } from "./features/sessions/solveStats";
@@ -72,12 +69,7 @@ function initialAppState(): AppState {
     return createDemoAppState();
   }
 
-  const storedState = readJson<AppState | null>(APP_STORAGE_KEY, null);
-  if (storedState) {
-    return sanitizeState(storedState);
-  }
-
-  return migrateLegacyState(readJson<unknown>(LEGACY_STORAGE_KEY, null)) ?? defaultAppState();
+  return sanitizeState(readJson(APP_STORAGE_KEY, defaultAppState()));
 }
 
 function App() {
@@ -88,7 +80,6 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [activeSheet, setActiveSheet] = useState<MobileSheetId>(null);
-  const scrambleRequestIdRef = useRef(0);
 
   const session = activeSession(state);
   const stats = useMemo(() => sessionStats(session.solves), [session.solves]);
@@ -102,25 +93,12 @@ function App() {
   }, [state]);
 
   const requestScramble = useCallback(async (eventId: PuzzleEvent) => {
-    const requestId = scrambleRequestIdRef.current + 1;
-    scrambleRequestIdRef.current = requestId;
     setScrambleLoading(true);
     const result = await generateScramble(eventId);
-    if (requestId !== scrambleRequestIdRef.current) {
-      return;
-    }
-
     setScrambleLoading(false);
     setScrambleError(result.error ?? null);
     setState((current) => {
-      if (
-        !canApplyScrambleResult({
-          requestId,
-          latestRequestId: scrambleRequestIdRef.current,
-          requestedEventId: eventId,
-          currentEventId: current.eventId,
-        })
-      ) {
+      if (result.error && current.currentScramble) {
         return current;
       }
 
@@ -153,17 +131,10 @@ function App() {
   );
 
   const timer = useTimerController(recordSolve);
-  const scrambleReady = hasReadyScramble(state.currentScramble, scrambleLoading);
-  const pressTimer = useCallback(() => {
-    if (timer.stage === "running" || scrambleReady) {
-      timer.press();
-    }
-  }, [scrambleReady, timer]);
 
   const setEvent = useCallback(
     (eventId: PuzzleEvent) => {
-      setScrambleError(null);
-      setState((current) => ({ ...current, eventId, currentScramble: "" }));
+      setState((current) => ({ ...current, eventId }));
       void requestScramble(eventId);
     },
     [requestScramble],
@@ -219,7 +190,7 @@ function App() {
       if (event.code === "Space") {
         event.preventDefault();
         if (!event.repeat) {
-          pressTimer();
+          timer.press();
         }
       } else if (event.key === "n" || event.key === "N") {
         void requestScramble(state.eventId);
@@ -245,7 +216,7 @@ function App() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [pressTimer, requestScramble, state.eventId, timer, toggleLastPenalty]);
+  }, [requestScramble, state.eventId, timer, toggleLastPenalty]);
 
   const bests = useMemo(
     () =>
@@ -360,7 +331,7 @@ function App() {
               stage={timer.stage}
               elapsedMs={timer.elapsedMs}
               bests={bests}
-              onPress={pressTimer}
+              onPress={timer.press}
               onRelease={timer.release}
             />
           </div>

@@ -1,4 +1,3 @@
-import type { PointerEvent } from "react";
 import { formatTimerTime } from "./timerFormat";
 import type { TimerStage } from "./useTimerController";
 
@@ -26,12 +25,6 @@ function splitTime(value: string): { main: string; decimal: string } {
   return { main: value.slice(0, index), decimal: value.slice(index) };
 }
 
-function releasePointer(event: PointerEvent<HTMLElement>) {
-  if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-    event.currentTarget.releasePointerCapture(event.pointerId);
-  }
-}
-
 export function TimerSurface({ stage, elapsedMs, bests, onPress, onRelease }: TimerSurfaceProps) {
   const time = splitTime(formatTimerTime(elapsedMs));
 
@@ -44,17 +37,10 @@ export function TimerSurface({ stage, elapsedMs, bests, onPress, onRelease }: Ti
         if ((event.target as HTMLElement).closest("button")) {
           return;
         }
-        event.currentTarget.setPointerCapture(event.pointerId);
         onPress();
       }}
-      onPointerUp={(event) => {
-        releasePointer(event);
-        onRelease();
-      }}
-      onPointerCancel={(event) => {
-        releasePointer(event);
-        onRelease();
-      }}
+      onPointerUp={onRelease}
+      onPointerCancel={onRelease}
     >
       <div
         className={`font-mono text-[clamp(5rem,15vw,12rem)] font-light leading-none tracking-normal tabular-nums transition ${STAGE_CLASS[stage]}`}
