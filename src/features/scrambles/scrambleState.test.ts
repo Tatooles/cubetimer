@@ -4,7 +4,7 @@ import type { AppState } from "../sessions/types";
 import { applyScrambleResult } from "./scrambleState";
 
 describe("scramble result state", () => {
-  test("applies fallback scramble from an errored result over the previous scramble", () => {
+  test("clears the previous scramble when generation fails", () => {
     const state = {
       ...defaultAppState(),
       currentScramble: "old 333 scramble",
@@ -13,9 +13,8 @@ describe("scramble result state", () => {
 
     expect(
       applyScrambleResult(state, {
-        scramble: "fallback 444 scramble",
         error: "offline",
       }).currentScramble,
-    ).toBe("fallback 444 scramble");
+    ).toBe("");
   });
 });

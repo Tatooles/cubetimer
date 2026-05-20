@@ -99,6 +99,7 @@ function App() {
     scrambleRequestId.current = requestId;
 
     setScrambleLoading(true);
+    setScrambleError(null);
     const result = await generateScramble(eventId);
 
     if (requestId !== scrambleRequestId.current) {
@@ -111,10 +112,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!state.currentScramble && !scrambleLoading) {
+    if (!state.currentScramble && !scrambleLoading && !scrambleError) {
       void requestScramble(state.eventId);
     }
-  }, [requestScramble, scrambleLoading, state.currentScramble, state.eventId]);
+  }, [requestScramble, scrambleError, scrambleLoading, state.currentScramble, state.eventId]);
 
   const recordSolve = useCallback(
     (ms: number) => {
