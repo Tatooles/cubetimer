@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Histogram } from "./features/analytics/Histogram";
 import { ProgressChart } from "./features/analytics/ProgressChart";
 import { MobileNav, type MobileSheetId } from "./features/mobile/MobileNav";
@@ -80,6 +80,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [activeSheet, setActiveSheet] = useState<MobileSheetId>(null);
+  const scrambleRequestId = useRef(0);
 
   const session = activeSession(state);
   const stats = useMemo(() => sessionStats(session.solves), [session.solves]);
@@ -93,8 +94,16 @@ function App() {
   }, [state]);
 
   const requestScramble = useCallback(async (eventId: PuzzleEvent) => {
+    const requestId = scrambleRequestId.current + 1;
+    scrambleRequestId.current = requestId;
+
     setScrambleLoading(true);
     const result = await generateScramble(eventId);
+
+    if (requestId !== scrambleRequestId.current) {
+      return;
+    }
+
     setScrambleLoading(false);
     setScrambleError(result.error ?? null);
     setState((current) => {
