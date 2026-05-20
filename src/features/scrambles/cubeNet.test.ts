@@ -104,4 +104,17 @@ describe("scramble cube net", () => {
       expect(faceStrings(scrambledCubeNet(scramble, size))).toEqual(expected);
     },
   );
+
+  test("applies 3x3 wide moves to centers for BLD scrambles", () => {
+    const net = scrambledCubeNet("Rw", 3);
+
+    expect(net.B[4]).toBe("U");
+    expect(net.F[4]).toBe("D");
+  });
+
+  test("applies whole-cube rotations for BLD scrambles", () => {
+    expect(faceStrings(scrambledCubeNet("x", 3))).toEqual(
+      faceStrings(scrambledCubeNet("Rw L'", 3)),
+    );
+  });
 });

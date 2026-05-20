@@ -13,6 +13,12 @@ type Sticker = {
   face: Face;
 };
 
+type ParsedMove = {
+  axis: Axis;
+  layers: number[];
+  turns: number;
+};
+
 export type CubeNet = Record<Face, Face[]>;
 
 const FACES: Face[] = ["U", "R", "F", "D", "L", "B"];
@@ -46,6 +52,38 @@ function moveInfo(face: Face, size: number): { axis: Axis; layer: number; turns:
     B: { axis: "z", layer: min, turns: 1 },
   };
   return info[face];
+}
+
+function suffixTurns(suffix: string): number {
+  return suffix === "2" ? 2 : suffix === "'" ? -1 : 1;
+}
+
+function wideLayers(face: Face, size: number): number[] {
+  const max = size - 1;
+  if (size === 2) {
+    return [0, 1];
+  }
+
+  if (face === "U" || face === "R" || face === "F") {
+    return [max, max - 1];
+  }
+
+  return [0, 1];
+}
+
+function rotationInfo(axis: Axis, size: number): ParsedMove {
+  const referenceFace: Record<Axis, Face> = {
+    x: "R",
+    y: "U",
+    z: "F",
+  };
+  const info = moveInfo(referenceFace[axis], size);
+
+  return {
+    axis,
+    layers: Array.from({ length: size }, (_, index) => index),
+    turns: info.turns,
+  };
 }
 
 function layerValue(sticker: Sticker, axis: Axis): number {
@@ -154,16 +192,38 @@ function faceIndex(face: Face, position: Vector, size: number): number {
   return (max - position.y) * size + position.z;
 }
 
-function parseToken(token: string): { face: Face; turns: number } | null {
-  const match = /^([URFDLB])([2']?)$/.exec(token);
-  if (!match) {
-    return null;
+function parseToken(token: string, size: 2 | 3): ParsedMove | null {
+  const faceMatch = /^([URFDLB])([2']?)$/.exec(token);
+  if (faceMatch) {
+    const info = moveInfo(faceMatch[1] as Face, size);
+    return {
+      axis: info.axis,
+      layers: [info.layer],
+      turns: info.turns * suffixTurns(faceMatch[2]),
+    };
   }
 
-  return {
-    face: match[1] as Face,
-    turns: match[2] === "2" ? 2 : match[2] === "'" ? -1 : 1,
-  };
+  const wideMatch = /^([URFDLB])w([2']?)$/.exec(token);
+  if (wideMatch) {
+    const face = wideMatch[1] as Face;
+    const info = moveInfo(face, size);
+    return {
+      axis: info.axis,
+      layers: wideLayers(face, size),
+      turns: info.turns * suffixTurns(wideMatch[2]),
+    };
+  }
+
+  const rotationMatch = /^([xyz])([2']?)$/.exec(token);
+  if (rotationMatch) {
+    const info = rotationInfo(rotationMatch[1] as Axis, size);
+    return {
+      ...info,
+      turns: info.turns * suffixTurns(rotationMatch[2]),
+    };
+  }
+
+  return null;
 }
 
 export function scrambledCubeNet(scramble: string, size: 2 | 3): CubeNet {
@@ -171,13 +231,12 @@ export function scrambledCubeNet(scramble: string, size: 2 | 3): CubeNet {
 
   scramble
     .split(/\s+/)
-    .map(parseToken)
-    .filter((move): move is { face: Face; turns: number } => move != null)
+    .map((token) => parseToken(token, size))
+    .filter((move): move is ParsedMove => move != null)
     .forEach((move) => {
-      const info = moveInfo(move.face, size);
       stickers = stickers.map((sticker) =>
-        layerValue(sticker, info.axis) === info.layer
-          ? rotateSticker(sticker, info.axis, info.turns * move.turns, size)
+        move.layers.includes(layerValue(sticker, move.axis))
+          ? rotateSticker(sticker, move.axis, move.turns, size)
           : sticker,
       );
     });
