@@ -87,6 +87,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isSession(value: unknown): value is Session {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    Array.isArray(value.solves)
+  );
+}
+
 export function sanitizeState(value: unknown): AppState {
   const fallback = defaultAppState();
   if (!isRecord(value)) {
@@ -94,7 +103,10 @@ export function sanitizeState(value: unknown): AppState {
   }
 
   const state = value as Partial<AppState>;
-  const sessions = state.sessions?.length ? state.sessions : fallback.sessions;
+  const sessions =
+    Array.isArray(state.sessions) && state.sessions.length > 0 && state.sessions.every(isSession)
+      ? state.sessions
+      : fallback.sessions;
   const selectedSessionId =
     typeof state.selectedSessionId === "string" &&
     sessions.some((session) => session.id === state.selectedSessionId)

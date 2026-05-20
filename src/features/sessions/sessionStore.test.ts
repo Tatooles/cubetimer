@@ -89,6 +89,12 @@ describe("session store defaults", () => {
   test("falls back to default state for non-object storage payloads", () => {
     expect(sanitizeState(null)).toEqual(defaultAppState());
   });
+
+  test("falls back to default sessions for malformed stored sessions", () => {
+    expect(sanitizeState({ sessions: [{}], selectedSessionId: "missing" }).sessions).toEqual(
+      defaultAppState().sessions,
+    );
+  });
 });
 
 describe("solve recording", () => {
