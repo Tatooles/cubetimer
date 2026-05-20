@@ -277,7 +277,7 @@ function App() {
       >
         <header className="col-span-full flex items-center gap-3 border-b border-white/[0.07] px-4 md:px-6">
           <div className="flex items-center gap-2 font-mono text-sm font-semibold">
-            <span className="grid h-[18px] w-[18px] grid-cols-2 gap-px rounded bg-zinc-100 p-px">
+            <span className="grid h-4.5 w-4.5 grid-cols-2 gap-px rounded bg-zinc-100 p-px">
               <span className="rounded-[1px] bg-indigo-400" />
               <span className="rounded-[1px] bg-black" />
               <span className="rounded-[1px] bg-black" />

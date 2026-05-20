@@ -50,7 +50,7 @@ function FaceNet({ size, scramble }: { size: 2 | 3; scramble: string }) {
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="h-40 w-full max-w-[270px]"
+      className="h-40 w-full max-w-67.5"
       role="img"
       aria-label="Cube net"
     >
