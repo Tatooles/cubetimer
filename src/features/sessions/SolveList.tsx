@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { formatSolveTime } from "../timer/timerFormat";
 import { rollingStats } from "./solveStats";
 import type { Solve } from "./types";
@@ -10,12 +11,12 @@ type SolveListProps = {
 };
 
 export function SolveList({ solves, onOpen, onPenalty, onDelete }: SolveListProps) {
-  const series = rollingStats(solves);
+  const series = useMemo(() => rollingStats(solves), [solves]);
+  const rows = useMemo(() => solves.map((solve, index) => ({ solve, index })).reverse(), [solves]);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pb-3">
-      {[...solves].reverse().map((solve) => {
-        const index = solves.findIndex((candidate) => candidate.id === solve.id);
+      {rows.map(({ solve, index }) => {
         const ao5 = series.ao5[index];
         const ao12 = series.ao12[index];
         return (

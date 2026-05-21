@@ -95,6 +95,10 @@ describe("session store defaults", () => {
       defaultAppState().sessions,
     );
   });
+
+  test("falls back to the default event for unsupported stored event ids", () => {
+    expect(sanitizeState({ ...defaultAppState(), eventId: "unsupported" }).eventId).toBe("333");
+  });
 });
 
 describe("solve recording", () => {

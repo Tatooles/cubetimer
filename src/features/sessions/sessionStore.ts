@@ -1,3 +1,4 @@
+import { PUZZLE_EVENTS } from "../scrambles/eventMap";
 import { DEFAULT_SETTINGS } from "../settings/settingsStore";
 import type { AppState, PuzzleEvent, Session, Solve } from "./types";
 
@@ -96,6 +97,10 @@ function isSession(value: unknown): value is Session {
   );
 }
 
+function isPuzzleEvent(value: unknown): value is PuzzleEvent {
+  return typeof value === "string" && PUZZLE_EVENTS.some((event) => event.id === value);
+}
+
 export function sanitizeState(value: unknown): AppState {
   const fallback = defaultAppState();
   if (!isRecord(value)) {
@@ -112,10 +117,12 @@ export function sanitizeState(value: unknown): AppState {
     sessions.some((session) => session.id === state.selectedSessionId)
       ? state.selectedSessionId
       : sessions[0].id;
+  const eventId = isPuzzleEvent(state.eventId) ? state.eventId : fallback.eventId;
 
   return {
     ...fallback,
     ...state,
+    eventId,
     selectedSessionId,
     sessions,
     settings: {
