@@ -1,442 +1,498 @@
-import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
-import { BrandMark } from "./components/BrandMark";
-import { Button } from "./components/Button";
-import { SessionsPanel } from "./components/SessionsPanel";
-import { SolvesPanel } from "./components/SolvesPanel";
-import { StatCard } from "./components/StatCard";
-import { TimerDisplay } from "./components/TimerDisplay";
-import { averageOf, bestOf, meanOf } from "./format";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Histogram } from "./features/analytics/Histogram";
+import { ProgressChart } from "./features/analytics/ProgressChart";
+import { MobileNav, type MobileSheetId } from "./features/mobile/MobileNav";
+import { MobileSheet } from "./features/mobile/MobileSheet";
+import { ScrambleBar } from "./features/scrambles/ScrambleBar";
+import { ScrambleDraw } from "./features/scrambles/ScrambleDraw";
+import { generateScramble } from "./features/scrambles/scrambleService";
+import { applyScrambleResult } from "./features/scrambles/scrambleState";
+import { SettingsPanel } from "./features/settings/SettingsPanel";
+import { SolveDetailModal } from "./features/sessions/SolveDetailModal";
+import { SessionSidebar } from "./features/sessions/SessionSidebar";
+import { downloadCsv, solvesToCsv } from "./features/sessions/csvExport";
 import {
-  appendScrambleHistory,
-  generateScramble,
-  nextScrambleHistory,
-  previousScrambleHistory,
-  shouldShowScrambleLoading,
-  type ScrambleHistory,
-} from "./scramble";
-import { createInitialData, createSession, createSolve, exportCsv, exportJson, importTimerData, loadData, saveData } from "./storage";
-import type { EventId, Penalty, Session, TimerData } from "./types";
+  APP_STORAGE_KEY,
+  activeSession,
+  createDemoAppState,
+  defaultAppState,
+  recordSolveInState,
+  sanitizeState,
+} from "./features/sessions/sessionStore";
+import { sessionStats } from "./features/sessions/solveStats";
+import type {
+  AppState,
+  Penalty,
+  PuzzleEvent,
+  Solve,
+  TimerSettings,
+} from "./features/sessions/types";
+import { TimerSurface } from "./features/timer/TimerSurface";
+import { formatSolveTime } from "./features/timer/timerFormat";
+import { useTimerController } from "./features/timer/useTimerController";
+import { readJson, writeJson } from "./shared/storage/localStorageStore";
 
-type TimerState = "idle" | "holding" | "ready" | "running";
-type ScrambleState = "loading" | "ready" | "error";
+function updateSolveInState(state: AppState, solveId: string, patch: Partial<Solve>): AppState {
+  return {
+    ...state,
+    sessions: state.sessions.map((session) => ({
+      ...session,
+      solves: session.solves.map((solve) =>
+        solve.id === solveId ? { ...solve, ...patch } : solve,
+      ),
+    })),
+  };
+}
 
-const HOLD_MS = 450;
-const SCRAMBLE_LOADING_TEXT = "Generating scramble...";
-const SCRAMBLE_ERROR_TEXT = "Unable to generate scramble.";
+function deleteSolveInState(state: AppState, solveId: string): AppState {
+  return {
+    ...state,
+    sessions: state.sessions.map((session) => ({
+      ...session,
+      solves: session.solves.filter((solve) => solve.id !== solveId),
+    })),
+  };
+}
 
-export function App() {
-  const [data, setData] = useState<TimerData>(() => loadData());
-  const [timerState, setTimerState] = useState<TimerState>("idle");
-  const [startAt, setStartAt] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
-  const [scramble, setScramble] = useState(SCRAMBLE_LOADING_TEXT);
-  const [scrambleState, setScrambleState] = useState<ScrambleState>("loading");
-  const [scrambleHistory, setScrambleHistory] = useState<ScrambleHistory>({ entries: [], index: -1 });
-  const [message, setMessage] = useState("");
-  const holdTimeout = useRef<number | null>(null);
-  const activePointerId = useRef<number | null>(null);
-  const timerFrame = useRef<number | null>(null);
-  const importInput = useRef<HTMLInputElement | null>(null);
-  const didRequestInitialScramble = useRef(false);
-  const latestScrambleRequestId = useRef(0);
-  const pendingScrambleRequestId = useRef<number | null>(null);
+function Module({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="border-b border-white/[0.07] px-6 py-4">
+      <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
+        <span>{title}</span>
+      </div>
+      {children}
+    </section>
+  );
+}
 
-  const activeSession = data.sessions.find((session) => session.id === data.activeSessionId) ?? data.sessions[0];
-  const sessionSolves = useMemo(
-    () =>
-      data.solves
-        .filter((solve) => solve.sessionId === activeSession.id)
-        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
-    [activeSession.id, data.solves],
+function initialAppState(): AppState {
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).get("demo") === "1") {
+    return createDemoAppState();
+  }
+
+  return sanitizeState(readJson(APP_STORAGE_KEY, defaultAppState()));
+}
+
+function App() {
+  const [state, setState] = useState<AppState>(initialAppState);
+  const [scrambleError, setScrambleError] = useState<string | null>(null);
+  const [scrambleLoading, setScrambleLoading] = useState(false);
+  const [selectedSolveId, setSelectedSolveId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [activeSheet, setActiveSheet] = useState<MobileSheetId>(null);
+  const scrambleRequestId = useRef(0);
+
+  const session = activeSession(state);
+  const stats = useMemo(() => sessionStats(session.solves), [session.solves]);
+  const selectedSolve = useMemo(
+    () => session.solves.find((solve) => solve.id === selectedSolveId) ?? null,
+    [selectedSolveId, session.solves],
   );
 
-  useEffect(() => saveData(data), [data]);
-
   useEffect(() => {
-    if (didRequestInitialScramble.current) return;
-    didRequestInitialScramble.current = true;
-    void requestScramble(activeSession.eventId, true);
+    writeJson(APP_STORAGE_KEY, state);
+  }, [state]);
+
+  const requestScramble = useCallback(async (eventId: PuzzleEvent) => {
+    const requestId = scrambleRequestId.current + 1;
+    scrambleRequestId.current = requestId;
+
+    setScrambleLoading(true);
+    setScrambleError(null);
+    const result = await generateScramble(eventId);
+
+    if (requestId !== scrambleRequestId.current) {
+      return;
+    }
+
+    setScrambleLoading(false);
+    setScrambleError(result.error ?? null);
+    setState((current) => applyScrambleResult(current, result));
   }, []);
 
   useEffect(() => {
-    if (timerState !== "running") return;
+    if (!state.currentScramble && !scrambleLoading && !scrambleError) {
+      void requestScramble(state.eventId);
+    }
+  }, [requestScramble, scrambleError, scrambleLoading, state.currentScramble, state.eventId]);
 
-    const tick = () => {
-      setElapsed(performance.now() - startAt);
-      timerFrame.current = requestAnimationFrame(tick);
-    };
+  const recordSolve = useCallback(
+    (ms: number) => {
+      setState((current) => recordSolveInState(current, ms));
+      if (state.currentScramble.trim()) {
+        void requestScramble(state.eventId);
+      }
+    },
+    [requestScramble, state.currentScramble, state.eventId],
+  );
 
-    timerFrame.current = requestAnimationFrame(tick);
-    return () => {
-      if (timerFrame.current) cancelAnimationFrame(timerFrame.current);
-    };
-  }, [startAt, timerState]);
+  const timer = useTimerController(recordSolve);
+  const timerStage = timer.stage;
+  const timerElapsedMs = timer.elapsedMs;
+  const pressTimer = timer.press;
+  const releaseTimer = timer.release;
+  const stopTimer = timer.stop;
+  const timerInputEnabled = state.currentScramble.trim().length > 0 && !scrambleLoading;
+  const timerLocked = timerStage === "running";
+
+  const setEvent = useCallback(
+    (eventId: PuzzleEvent) => {
+      if (timerLocked) {
+        return;
+      }
+
+      setState((current) => ({ ...current, eventId }));
+      void requestScramble(eventId);
+    },
+    [requestScramble, timerLocked],
+  );
+
+  const toggleLastPenalty = useCallback((penalty: Penalty) => {
+    setState((current) => {
+      const currentSession = activeSession(current);
+      const last = currentSession.solves[currentSession.solves.length - 1];
+      if (!last) {
+        return current;
+      }
+
+      const nextPenalty = last.penalty === penalty ? "OK" : penalty;
+      return updateSolveInState(current, last.id, { penalty: nextPenalty });
+    });
+  }, []);
+
+  const updatePenalty = useCallback((solveId: string, penalty: Penalty) => {
+    setState((current) => updateSolveInState(current, solveId, { penalty }));
+  }, []);
+
+  const deleteSolve = useCallback((solveId: string) => {
+    setState((current) => deleteSolveInState(current, solveId));
+    setSelectedSolveId(null);
+  }, []);
+
+  const updateComment = useCallback((solveId: string, comment: string) => {
+    setState((current) => updateSolveInState(current, solveId, { comment }));
+  }, []);
 
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) return;
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement;
+      if (target.closest("input, textarea, select")) {
+        return;
+      }
 
-      if (timerState === "running") {
+      if (event.key === "Escape") {
+        setActiveSheet(null);
+        setSettingsOpen(false);
+        setShortcutsOpen(false);
+        setSelectedSolveId(null);
+        return;
+      }
+
+      if (timerStage === "running") {
         event.preventDefault();
         stopTimer();
         return;
       }
 
-      if (event.code !== "Space" || event.repeat || timerState !== "idle") return;
-      event.preventDefault();
-      beginHold();
-    };
-
-    const onKeyUp = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target) || event.code !== "Space") return;
-      event.preventDefault();
-
-      if (holdTimeout.current) {
-        clearHoldTimeout();
+      if (event.code === "Space") {
+        event.preventDefault();
+        if (!event.repeat && timerInputEnabled) {
+          pressTimer();
+        }
+      } else if (event.key === "n" || event.key === "N") {
+        void requestScramble(state.eventId);
+      } else if (event.key === "+" || event.key === "=") {
+        toggleLastPenalty("+2");
+      } else if (event.key === "d" || event.key === "D") {
+        toggleLastPenalty("DNF");
+      } else if (event.key === "?") {
+        setShortcutsOpen(true);
       }
+    }
 
-      if (timerState === "ready") startTimer();
-      if (timerState === "holding") setTimerState("idle");
-    };
+    function onKeyUp(event: KeyboardEvent) {
+      if (event.code === "Space") {
+        event.preventDefault();
+        releaseTimer();
+      }
+    }
 
-    window.addEventListener("keydown", onKeyDown, { capture: true });
-    window.addEventListener("keyup", onKeyUp, { capture: true });
-
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
     return () => {
-      window.removeEventListener("keydown", onKeyDown, { capture: true });
-      window.removeEventListener("keyup", onKeyUp, { capture: true });
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
     };
-  }, [scramble, scrambleState, timerState, activeSession.id, activeSession.eventId, startAt]);
+  }, [
+    pressTimer,
+    releaseTimer,
+    requestScramble,
+    state.eventId,
+    stopTimer,
+    timerInputEnabled,
+    timerStage,
+    toggleLastPenalty,
+  ]);
 
-  function startTimer() {
-    if (scrambleState !== "ready" || pendingScrambleRequestId.current !== null) {
-      setTimerState("idle");
-      setMessage("Generate a scramble before starting.");
-      return;
-    }
-
-    const now = performance.now();
-    setStartAt(now);
-    setElapsed(0);
-    setTimerState("running");
-  }
-
-  function stopTimer() {
-    const finalTime = Math.round(performance.now() - startAt);
-    const solve = createSolve({
-      sessionId: activeSession.id,
-      eventId: activeSession.eventId,
-      timeMs: finalTime,
-      penalty: "none",
-      scramble,
-    });
-
-    setData((current) => ({ ...current, solves: [solve, ...current.solves] }));
-    void requestScramble(activeSession.eventId);
-    setElapsed(finalTime);
-    setTimerState("idle");
-  }
-
-  function beginHold() {
-    clearHoldTimeout();
-    setMessage("");
-    setTimerState("holding");
-    holdTimeout.current = window.setTimeout(() => setTimerState("ready"), HOLD_MS);
-  }
-
-  function clearHoldTimeout() {
-    if (!holdTimeout.current) return;
-    window.clearTimeout(holdTimeout.current);
-    holdTimeout.current = null;
-  }
-
-  function releaseHold() {
-    clearHoldTimeout();
-    if (timerState === "ready") startTimer();
-    if (timerState === "holding") setTimerState("idle");
-  }
-
-  function cancelHold() {
-    clearHoldTimeout();
-    if (timerState === "holding" || timerState === "ready") setTimerState("idle");
-  }
-
-  async function requestScramble(eventId: EventId, resetHistory = false): Promise<boolean> {
-    const requestId = latestScrambleRequestId.current + 1;
-    latestScrambleRequestId.current = requestId;
-    pendingScrambleRequestId.current = requestId;
-
-    if (shouldShowScrambleLoading(scrambleHistory, resetHistory)) setScramble(SCRAMBLE_LOADING_TEXT);
-    setScrambleState("loading");
-
-    try {
-      const nextScramble = await generateScramble(eventId);
-      if (requestId !== latestScrambleRequestId.current) return false;
-
-      setScramble(nextScramble);
-      setScrambleState("ready");
-      setMessage("");
-      setScrambleHistory((current) =>
-        appendScrambleHistory(resetHistory ? { entries: [], index: -1 } : current, nextScramble),
-      );
-      return true;
-    } catch (error) {
-      if (requestId !== latestScrambleRequestId.current) return false;
-
-      setScramble(SCRAMBLE_ERROR_TEXT);
-      setScrambleState("error");
-      setMessage(error instanceof Error ? error.message : "Scramble generation failed.");
-      if (resetHistory) setScrambleHistory({ entries: [], index: -1 });
-      return false;
-    } finally {
-      if (pendingScrambleRequestId.current === requestId) {
-        pendingScrambleRequestId.current = null;
-      }
-    }
-  }
-
-  function showPreviousScramble() {
-    if (scrambleState === "loading" || pendingScrambleRequestId.current !== null) return;
-
-    const nextHistory = previousScrambleHistory(scrambleHistory);
-    const nextScramble = nextHistory.entries[nextHistory.index];
-    if (!nextScramble) return;
-    setScrambleHistory(nextHistory);
-    setScramble(nextScramble);
-    setScrambleState("ready");
-  }
-
-  function showNextScramble() {
-    if (scrambleState === "loading" || pendingScrambleRequestId.current !== null) return;
-
-    if (scrambleHistory.index < scrambleHistory.entries.length - 1) {
-      const nextHistory = nextScrambleHistory(scrambleHistory);
-      const nextScramble = nextHistory.entries[nextHistory.index];
-      if (!nextScramble) return;
-      setScrambleHistory(nextHistory);
-      setScramble(nextScramble);
-      setScrambleState("ready");
-      return;
-    }
-
-    void requestScramble(activeSession.eventId);
-  }
-
-  function updateSession(sessionId: string, patch: Partial<Session>) {
-    setData((current) => ({
-      ...current,
-      sessions: current.sessions.map((session) => (session.id === sessionId ? { ...session, ...patch } : session)),
-    }));
-  }
-
-  function setActiveSession(sessionId: string) {
-    if (sessionId === activeSession.id) return;
-    const nextSession = data.sessions.find((session) => session.id === sessionId);
-    if (!nextSession) return;
-    setData((current) => ({ ...current, activeSessionId: sessionId }));
-    void requestScramble(nextSession.eventId, true);
-    setTimerState("idle");
-  }
-
-  function addSession() {
-    const session = createSession(`Session ${data.sessions.length + 1}`, activeSession.eventId);
-    setData((current) => ({
-      ...current,
-      activeSessionId: session.id,
-      sessions: [...current.sessions, session],
-    }));
-    void requestScramble(session.eventId, true);
-  }
-
-  function deleteSession(sessionId: string) {
-    if (data.sessions.length === 1) return;
-    const nextSessions = data.sessions.filter((session) => session.id !== sessionId);
-    const nextActive = data.activeSessionId === sessionId ? nextSessions[0].id : data.activeSessionId;
-
-    setData((current) => ({
-      ...current,
-      activeSessionId: nextActive,
-      sessions: nextSessions,
-      solves: current.solves.filter((solve) => solve.sessionId !== sessionId),
-    }));
-    void requestScramble(nextSessions.find((session) => session.id === nextActive)?.eventId ?? "333", true);
-  }
-
-  function changeActiveEvent(eventId: EventId) {
-    updateSession(activeSession.id, { eventId });
-    void requestScramble(eventId, true);
-  }
-
-  function updatePenalty(solveId: string, penalty: Penalty) {
-    setData((current) => ({
-      ...current,
-      solves: current.solves.map((solve) => (solve.id === solveId ? { ...solve, penalty } : solve)),
-    }));
-  }
-
-  function deleteSolve(solveId: string) {
-    setData((current) => ({ ...current, solves: current.solves.filter((solve) => solve.id !== solveId) }));
-  }
-
-  function resetAll() {
-    if (!confirm("Reset all sessions and solves on this device?")) return;
-    const fresh = createInitialData();
-    setData(fresh);
-    void requestScramble(fresh.sessions[0].eventId, true);
-  }
-
-  async function handleImport(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const imported = await importTimerData(file);
-      setData(imported);
-      const active = imported.sessions.find((session) => session.id === imported.activeSessionId) ?? imported.sessions[0];
-      if (await requestScramble(active.eventId, true)) {
-        setMessage("Import complete.");
-      }
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Import failed.");
-    } finally {
-      event.target.value = "";
-    }
-  }
-
-  const statusText = {
-    idle: "Hold space or screen",
-    holding: "Keep holding",
-    ready: "Release to start",
-    running: "Press any key or tap to stop",
-  }[timerState];
-  const canNavigateScrambles = timerState !== "running" && scrambleState !== "loading";
-  const canShowPreviousScramble = canNavigateScrambles && scrambleHistory.index > 0;
-  const canShowNextScramble = canNavigateScrambles;
-
-  return (
-    <main className="grid h-dvh w-full grid-cols-[minmax(0,1fr)_390px] overflow-hidden bg-[#090d13] bg-[radial-gradient(circle_at_30%_15%,rgba(70,114,190,0.14),transparent_36%)] max-[960px]:grid-cols-1 max-[960px]:grid-rows-[minmax(0,58dvh)_minmax(260px,42dvh)]">
-      <section
-        className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-4 overflow-hidden p-5 max-[960px]:p-3.5 max-[680px]:gap-2"
-        aria-label="Timer"
-      >
-        <div className="flex min-h-[42px] items-center justify-between gap-4 max-[680px]:min-h-[86px] max-[680px]:flex-col max-[680px]:items-stretch max-[680px]:justify-start">
-          <BrandMark eventId={activeSession.eventId} />
-          <div className="flex items-center gap-2 max-[680px]:flex-wrap">
-            <Button type="button" onClick={() => exportJson(data)}>
-              JSON
-            </Button>
-            <Button type="button" onClick={() => exportCsv(sessionSolves)}>
-              CSV
-            </Button>
-            <Button type="button" onClick={() => importInput.current?.click()}>
-              Import
-            </Button>
-            <input ref={importInput} className="hidden" type="file" accept="application/json,.json" onChange={handleImport} />
-          </div>
-        </div>
-
-        <TimerDisplay
-          elapsed={elapsed}
-          onKeyDown={handleTimerPanelKey}
-          onPointerCancel={handleTimerPointerCancel}
-          onPointerDown={handleTimerPointerDown}
-          onPointerUp={handleTimerPointerUp}
-          scramble={scramble}
-          scrambleActions={
-            <div className="flex flex-wrap gap-2" aria-label="Scramble actions">
-              <Button type="button" className="min-w-22" onClick={showPreviousScramble} disabled={!canShowPreviousScramble}>
-                Previous
-              </Button>
-              <Button type="button" className="min-w-22" onClick={showNextScramble} disabled={!canShowNextScramble}>
-                Next
-              </Button>
-              <Button type="button" className="min-w-22" onClick={() => void navigator.clipboard?.writeText(scramble)}>
-                Copy
-              </Button>
-            </div>
-          }
-          statusText={statusText}
-          timerState={timerState}
-        />
-
-        <div className="grid grid-cols-5 gap-2 max-[680px]:gap-1.5">
-          <StatCard label="Solves" value={String(sessionSolves.length)} />
-          <StatCard label="Best" value={bestOf(sessionSolves)} />
-          <StatCard label="Mean" value={meanOf(sessionSolves)} />
-          <StatCard label="Ao5" value={averageOf(sessionSolves, 5)} />
-          <StatCard label="Ao12" value={averageOf(sessionSolves, 12)} />
-        </div>
-        {message ? <p className="text-[#8d99aa]">{message}</p> : null}
-      </section>
-
-      <aside
-        className="grid h-dvh min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-3.5 overflow-hidden border-l border-[#1d2633] bg-[#0d131b] p-4 max-[960px]:h-auto max-[960px]:overflow-auto max-[960px]:border-t max-[960px]:border-l-0"
-        aria-label="Sessions and solves"
-      >
-        <SessionsPanel
-          activeSession={activeSession}
-          sessions={data.sessions}
-          onAddSession={addSession}
-          onChangeEvent={changeActiveEvent}
-          onDeleteSession={() => deleteSession(activeSession.id)}
-          onRenameSession={(name) => updateSession(activeSession.id, { name })}
-          onResetAll={resetAll}
-          onSelectSession={setActiveSession}
-        />
-        <SolvesPanel solves={sessionSolves} onDeleteSolve={deleteSolve} onUpdatePenalty={updatePenalty} />
-      </aside>
-    </main>
+  const bests = useMemo(
+    () =>
+      (["single", "ao5", "ao12", "ao50", "ao100"] as const).map((key) => ({
+        label: key,
+        value: stats.best[key] == null ? "-" : formatSolveTime(stats.best[key]),
+      })),
+    [stats.best],
   );
 
-  function handleTimerPanelKey(event: ReactKeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Enter" && timerState !== "running") {
-      void requestScramble(activeSession.eventId);
-    }
-  }
-
-  function handleTimerPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!isTimerPointer(event)) return;
-
-    event.preventDefault();
-    event.currentTarget.focus();
-
-    if (timerState === "running") {
-      stopTimer();
+  function createSession() {
+    if (timerLocked) {
       return;
     }
 
-    if (isInteractiveTarget(event.target)) return;
-    if (timerState !== "idle") return;
-    activePointerId.current = event.pointerId;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    beginHold();
+    const name = window.prompt("Session name", "New session");
+    if (!name) {
+      return;
+    }
+
+    const id = `session-${Date.now()}`;
+    setState((current) => ({
+      ...current,
+      selectedSessionId: id,
+      sessions: [...current.sessions, { id, name, solves: [] }],
+    }));
   }
 
-  function handleTimerPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
-    if (activePointerId.current !== event.pointerId) return;
-    event.preventDefault();
-    activePointerId.current = null;
-    event.currentTarget.releasePointerCapture?.(event.pointerId);
-    releaseHold();
+  function clearSession() {
+    if (timerLocked) {
+      return;
+    }
+
+    if (!window.confirm("Clear all solves in this session?")) {
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      sessions: current.sessions.map((candidate) =>
+        candidate.id === current.selectedSessionId ? { ...candidate, solves: [] } : candidate,
+      ),
+    }));
   }
 
-  function handleTimerPointerCancel(event: ReactPointerEvent<HTMLDivElement>) {
-    if (activePointerId.current !== event.pointerId) return;
-    activePointerId.current = null;
-    cancelHold();
+  function exportSession() {
+    downloadCsv(
+      `${session.name.toLowerCase().replaceAll(/\s+/g, "-")}.csv`,
+      solvesToCsv(session.solves),
+    );
   }
+
+  function setSettings(settings: TimerSettings) {
+    setState((current) => ({ ...current, settings }));
+  }
+
+  const densityClass =
+    state.settings.density === "compact"
+      ? "md:grid-cols-[264px_1fr_296px]"
+      : "md:grid-cols-[296px_1fr_332px]";
+
+  return (
+    <div className="min-h-svh bg-[#0a0a0b] text-zinc-100">
+      <div
+        className={`grid h-svh grid-rows-[56px_1fr_64px] overflow-hidden md:grid-rows-[56px_1fr] ${densityClass}`}
+      >
+        <header className="col-span-full flex items-center gap-3 border-b border-white/[0.07] px-4 md:px-6">
+          <div className="flex items-center gap-2 font-mono text-sm font-semibold">
+            <span className="grid h-4.5 w-4.5 grid-cols-2 gap-px rounded bg-zinc-100 p-px">
+              <span className="rounded-[1px] bg-indigo-400" />
+              <span className="rounded-[1px] bg-black" />
+              <span className="rounded-[1px] bg-black" />
+              <span className="rounded-[1px] bg-black" />
+            </span>
+            <span>
+              cube<span className="text-zinc-600">timer</span>
+            </span>
+          </div>
+          <div className="ml-auto flex items-center gap-1">
+            <button type="button" onClick={() => setShortcutsOpen(true)} className="topbar-button">
+              ?
+            </button>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen((open) => !open)}
+              className="topbar-button"
+            >
+              set
+            </button>
+          </div>
+        </header>
+
+        <SessionSidebar
+          sessions={state.sessions}
+          activeSessionId={state.selectedSessionId}
+          mobileOpen={activeSheet === "session"}
+          disabled={timerLocked}
+          onSessionChange={(sessionId) => {
+            if (timerLocked) {
+              return;
+            }
+
+            setState((current) => ({ ...current, selectedSessionId: sessionId }));
+          }}
+          onNewSession={createSession}
+          onClear={clearSession}
+          onExport={exportSession}
+          onOpenSolve={(solve) => setSelectedSolveId(solve.id)}
+          onPenalty={updatePenalty}
+          onDelete={deleteSolve}
+        />
+
+        <main className="min-w-0 overflow-hidden md:col-start-2">
+          <div className="flex h-full flex-col">
+            <ScrambleBar
+              eventId={state.eventId}
+              scramble={state.currentScramble}
+              isLoading={scrambleLoading}
+              error={scrambleError}
+              disabled={timerLocked}
+              onEventChange={setEvent}
+              onNext={() => {
+                if (timerLocked) {
+                  return;
+                }
+
+                void requestScramble(state.eventId);
+              }}
+              onCopy={() => void navigator.clipboard?.writeText(state.currentScramble)}
+            />
+            <TimerSurface
+              stage={timerStage}
+              elapsedMs={timerElapsedMs}
+              bests={bests}
+              onPress={timerInputEnabled ? pressTimer : undefined}
+              onRelease={releaseTimer}
+            />
+          </div>
+        </main>
+
+        <aside className="hidden overflow-y-auto border-l border-white/[0.07] md:col-start-3 md:flex md:flex-col">
+          {state.settings.showGraph ? (
+            <Module title="Progress">
+              <ProgressChart solves={session.solves} />
+              <div className="mt-2 flex gap-3 font-mono text-[10px] text-zinc-600">
+                <span>single</span>
+                <span className="text-red-300">ao5</span>
+                <span className="text-indigo-300">ao12</span>
+              </div>
+            </Module>
+          ) : null}
+          {state.settings.showDraw ? (
+            <Module title="Scramble draw">
+              <ScrambleDraw eventId={state.eventId} scramble={state.currentScramble} />
+            </Module>
+          ) : null}
+          {state.settings.showHistogram ? (
+            <Module title="Histogram">
+              <Histogram solves={session.solves} />
+            </Module>
+          ) : null}
+        </aside>
+
+        <MobileNav
+          active={activeSheet}
+          disabled={{
+            graph: !state.settings.showGraph,
+            draw: !state.settings.showDraw,
+            histogram: !state.settings.showHistogram,
+          }}
+          onSelect={setActiveSheet}
+        />
+      </div>
+
+      {activeSheet === "session" ? (
+        <button
+          type="button"
+          aria-label="Close session"
+          className="fixed inset-x-0 top-0 bottom-16 z-20 bg-black/45 md:hidden"
+          onClick={() => setActiveSheet(null)}
+        />
+      ) : null}
+      <MobileSheet
+        active={activeSheet}
+        sheetId="graph"
+        title="Progress"
+        onClose={() => setActiveSheet(null)}
+      >
+        <ProgressChart solves={session.solves} />
+      </MobileSheet>
+      <MobileSheet
+        active={activeSheet}
+        sheetId="draw"
+        title="Scramble draw"
+        onClose={() => setActiveSheet(null)}
+      >
+        <ScrambleDraw eventId={state.eventId} scramble={state.currentScramble} />
+      </MobileSheet>
+      <MobileSheet
+        active={activeSheet}
+        sheetId="histogram"
+        title="Histogram"
+        onClose={() => setActiveSheet(null)}
+      >
+        <Histogram solves={session.solves} />
+      </MobileSheet>
+      <MobileSheet
+        active={activeSheet}
+        sheetId="settings"
+        title="Settings"
+        onClose={() => setActiveSheet(null)}
+      >
+        <SettingsPanel settings={state.settings} onChange={setSettings} />
+      </MobileSheet>
+
+      {settingsOpen ? (
+        <SettingsPanel
+          settings={state.settings}
+          onChange={setSettings}
+          floating
+          onClose={() => setSettingsOpen(false)}
+        />
+      ) : null}
+      {shortcutsOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onMouseDown={() => setShortcutsOpen(false)}
+        >
+          <section
+            className="min-w-80 rounded-xl border border-white/10 bg-zinc-950 p-5"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700">
+              Keyboard shortcuts
+            </h2>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-3 text-sm text-zinc-500">
+              <dt className="font-mono text-zinc-200">Space</dt>
+              <dd>Hold, release, stop</dd>
+              <dt className="font-mono text-zinc-200">N</dt>
+              <dd>Next scramble</dd>
+              <dt className="font-mono text-zinc-200">+ / =</dt>
+              <dd>Toggle +2 on last solve</dd>
+              <dt className="font-mono text-zinc-200">D</dt>
+              <dd>Toggle DNF on last solve</dd>
+              <dt className="font-mono text-zinc-200">Esc</dt>
+              <dd>Close panels</dd>
+            </dl>
+          </section>
+        </div>
+      ) : null}
+      <SolveDetailModal
+        solve={selectedSolve}
+        onClose={() => setSelectedSolveId(null)}
+        onPenalty={updatePenalty}
+        onComment={updateComment}
+        onDelete={deleteSolve}
+      />
+    </div>
+  );
 }
 
-function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable;
-}
-
-function isInteractiveTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  return target.closest("button, input, select, textarea, summary, a") !== null || target.isContentEditable;
-}
-
-function isTimerPointer(event: ReactPointerEvent<HTMLElement>): boolean {
-  return event.isPrimary && (event.pointerType === "touch" || event.pointerType === "pen");
-}
+export default App;

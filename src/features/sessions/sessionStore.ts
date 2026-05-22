@@ -1,0 +1,139 @@
+import { PUZZLE_EVENTS } from "../scrambles/eventMap";
+import { DEFAULT_SETTINGS } from "../settings/settingsStore";
+import type { AppState, PuzzleEvent, Session, Solve } from "./types";
+
+const STORAGE_VERSION = 1;
+
+export const APP_STORAGE_KEY = `cube-timer-studio-v${STORAGE_VERSION}`;
+
+const DEMO_TIMES = [
+  12_410, 11_980, 13_220, 12_760, 10_940, 14_070, 12_030, 11_540, 13_890, 12_180, 10_620, 15_030,
+  12_690, 11_730, 13_140, 12_020, 10_880, 14_420, 11_910, 12_570, 13_610, 10_970, 12_260, 11_640,
+  15_480, 12_730, 11_280, 13_050, 12_360, 10_790, 14_110, 12_080, 11_860, 13_720, 12_510, 10_660,
+  14_860, 11_990, 12_440, 13_180, 11_320, 10_910, 12_830, 14_270, 11_750, 13_360, 12_150, 10_840,
+  12_620, 11_570,
+];
+
+const DEMO_SCRAMBLES = [
+  "R U R' F2 D L2 B' U2 R2 F D'",
+  "F R U' R' D2 L B2 U F' L2",
+  "U2 R2 F' L D B2 R' U F2 D'",
+  "B L2 D' R U2 F' D2 L' U R2",
+];
+
+export function createSolve(ms: number, eventId: PuzzleEvent, scramble: string): Solve {
+  return {
+    id: crypto.randomUUID(),
+    ms,
+    eventId,
+    scramble,
+    timestamp: Date.now(),
+    penalty: "OK",
+  };
+}
+
+export function recordSolveInState(state: AppState, ms: number): AppState {
+  if (!state.currentScramble.trim()) {
+    return state;
+  }
+
+  const solve = createSolve(ms, state.eventId, state.currentScramble);
+  return {
+    ...state,
+    sessions: state.sessions.map((session) =>
+      session.id === state.selectedSessionId
+        ? { ...session, solves: [...session.solves, solve] }
+        : session,
+    ),
+  };
+}
+
+export function defaultAppState(): AppState {
+  return {
+    eventId: "333",
+    selectedSessionId: "main",
+    sessions: [{ id: "main", name: "Main", solves: [] }],
+    currentScramble: "",
+    settings: DEFAULT_SETTINGS,
+  };
+}
+
+export function createDemoAppState(): AppState {
+  const now = Date.now();
+
+  return {
+    ...defaultAppState(),
+    sessions: [
+      {
+        id: "main",
+        name: "Main",
+        solves: DEMO_TIMES.map((ms, index) => ({
+          id: `demo-${index}`,
+          ms,
+          eventId: "333",
+          scramble: DEMO_SCRAMBLES[index % DEMO_SCRAMBLES.length],
+          timestamp: now - (DEMO_TIMES.length - index) * 45_000,
+          penalty: index === 11 ? "+2" : index === 24 ? "DNF" : "OK",
+          comment: index === 4 ? "Clean F2L" : undefined,
+        })),
+      },
+      { id: "practice-oh", name: "OH practice", solves: [] },
+      { id: "big-cubes", name: "Big cubes", solves: [] },
+    ],
+    currentScramble: DEMO_SCRAMBLES[0],
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isSession(value: unknown): value is Session {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    Array.isArray(value.solves)
+  );
+}
+
+function isPuzzleEvent(value: unknown): value is PuzzleEvent {
+  return typeof value === "string" && PUZZLE_EVENTS.some((event) => event.id === value);
+}
+
+export function sanitizeState(value: unknown): AppState {
+  const fallback = defaultAppState();
+  if (!isRecord(value)) {
+    return fallback;
+  }
+
+  const state = value as Partial<AppState>;
+  const sessions =
+    Array.isArray(state.sessions) && state.sessions.length > 0 && state.sessions.every(isSession)
+      ? state.sessions
+      : fallback.sessions;
+  const selectedSessionId =
+    typeof state.selectedSessionId === "string" &&
+    sessions.some((session) => session.id === state.selectedSessionId)
+      ? state.selectedSessionId
+      : sessions[0].id;
+  const eventId = isPuzzleEvent(state.eventId) ? state.eventId : fallback.eventId;
+
+  return {
+    ...fallback,
+    ...state,
+    eventId,
+    selectedSessionId,
+    sessions,
+    settings: {
+      ...DEFAULT_SETTINGS,
+      ...state.settings,
+    },
+  };
+}
+
+export function activeSession(state: AppState): Session {
+  return (
+    state.sessions.find((session) => session.id === state.selectedSessionId) ?? state.sessions[0]
+  );
+}
