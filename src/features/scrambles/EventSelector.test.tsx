@@ -15,36 +15,40 @@ describe("EventSelector", () => {
     expect(html).toContain("5x5");
   });
 
-  test("uses a flush underline tab treatment on desktop", () => {
+  test("uses a borderless underline tab treatment on desktop", () => {
     const html = renderToStaticMarkup(
       <EventSelector eventId="333" mode="tabs" onEventChange={() => {}} />,
     );
 
     expect(html).toContain("event-tabs-strip");
-    expect(html).toContain("event-tabs-divider");
     expect(html).toContain("data-[state=active]:after:bg-indigo-300");
+    expect(html).not.toContain("event-tabs-divider");
+    expect(html).not.toContain("border-r border-white/[0.07]");
     expect(html).not.toContain("rounded-lg border border-white/10 bg-zinc-950/75 p-1");
   });
 
-  test("lets the more trigger fill the remaining timer-column width", () => {
+  test("keeps the more trigger content-width in the timer column", () => {
     const html = renderToStaticMarkup(
       <EventSelector eventId="333" mode="tabs" onEventChange={() => {}} />,
     );
+    const moreTriggerClass = html.match(/class="([^"]*event-more-trigger[^"]*)"/)?.[1] ?? "";
 
     expect(html).toContain("event-tabs-list event-tabs-strip flex w-full");
-    expect(html).toContain("event-more-trigger");
-    expect(html).toContain("flex-1");
+    expect(moreTriggerClass).toContain("w-auto");
+    expect(moreTriggerClass).toContain("min-w-20");
+    expect(moreTriggerClass).not.toContain("flex-1");
+    expect(moreTriggerClass).not.toContain("border-r");
   });
 
-  test("keeps more visually neutral when the selected event is in overflow", () => {
+  test("underlines more like an active tab when the selected event is in overflow", () => {
     const html = renderToStaticMarkup(
       <EventSelector eventId="666" mode="tabs" onEventChange={() => {}} />,
     );
     const moreTriggerClass = html.match(/class="([^"]*event-more-trigger[^"]*)"/)?.[1] ?? "";
 
     expect(moreTriggerClass).not.toContain("event-more-active");
-    expect(moreTriggerClass).not.toContain("after:bg-indigo-300");
-    expect(moreTriggerClass).toContain("text-zinc-500");
+    expect(moreTriggerClass).toContain("after:bg-indigo-300");
+    expect(moreTriggerClass).toContain("text-indigo-200");
     expect(moreTriggerClass).toContain("focus:ring-0");
     expect(html).toContain('value="__event_overflow__"');
   });

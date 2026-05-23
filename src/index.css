@@ -144,6 +144,19 @@ button:disabled {
   box-shadow: 0 0 0 1px rgb(255 255 255 / 10%);
 }
 
+.event-more-trigger {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.event-more-trigger:hover,
+.event-more-trigger:focus {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
 .modal-button {
   flex: 1;
   border-radius: 6px;

@@ -11,4 +11,15 @@ describe("global component styles", () => {
     expect(cssSource).toContain("border-color: transparent");
     expect(cssSource).toContain("height: 36px");
   });
+
+  test("overrides shared select defaults for the desktop event overflow trigger", async () => {
+    // @ts-expect-error The test runner has Node APIs, but the app tsconfig omits Node module types.
+    const { readFileSync } = await import("node:fs");
+    const cssSource = readFileSync(new URL("./index.css", import.meta.url), "utf8") as string;
+
+    expect(cssSource).toContain(".event-more-trigger");
+    expect(cssSource).toContain("border-color: transparent");
+    expect(cssSource).toContain("background: transparent");
+    expect(cssSource).toContain("box-shadow: none");
+  });
 });

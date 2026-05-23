@@ -13,10 +13,7 @@ export function TabsList({ className, ...props }: ComponentProps<typeof TabsPrim
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
-      className={classNames(
-        "inline-flex h-full items-stretch border-r border-white/[0.07] bg-transparent",
-        className,
-      )}
+      className={classNames("inline-flex h-full items-stretch bg-transparent", className)}
       {...props}
     />
   );

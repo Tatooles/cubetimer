@@ -97,7 +97,7 @@ function AdaptiveEventTabs({ eventId, disabled, onEventChange }: Omit<EventSelec
                 key={event.id}
                 value={event.id}
                 disabled={disabled}
-                className="event-tabs-trigger event-tabs-divider border-r border-white/[0.07] font-mono"
+                className="event-tabs-trigger font-mono"
               >
                 {event.label}
               </TabsTrigger>
@@ -110,7 +110,9 @@ function AdaptiveEventTabs({ eventId, disabled, onEventChange }: Omit<EventSelec
               >
                 <SelectTrigger
                   value={activeOverflow ? OVERFLOW_TAB_VALUE : undefined}
-                  className="event-more-trigger event-tabs-divider relative h-full min-w-24 flex-1 justify-center rounded-none border-0 border-r border-white/[0.07] bg-transparent px-4 font-mono text-sm text-zinc-500 shadow-none hover:bg-transparent hover:text-zinc-200 focus:border-white/[0.07] focus:ring-0 focus:ring-offset-0 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5"
+                  className={`event-more-trigger relative h-full w-auto min-w-20 justify-center rounded-none border-0 bg-transparent px-4 font-mono text-sm shadow-none hover:bg-transparent hover:text-zinc-200 focus:border-transparent focus:ring-0 focus:ring-offset-0 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 ${
+                    activeOverflow ? "text-indigo-200 after:bg-indigo-300" : "text-zinc-500"
+                  }`}
                 >
                   <SelectValue placeholder="more" />
                 </SelectTrigger>
