@@ -6,3 +6,24 @@ describe("App keyboard listeners", () => {
     expect(appSource).not.toContain(", timer,");
   });
 });
+
+describe("App event selector layout", () => {
+  test("puts both mobile and desktop event selectors in the top bar", () => {
+    expect(appSource).toContain('mode="select"');
+    expect(appSource).toContain('mode="tabs"');
+    expect(appSource).not.toContain("onEventChange={onEventChange}");
+  });
+
+  test("fills the center grid column with the desktop selector", () => {
+    expect(appSource).toContain("headerDensityClass");
+    expect(appSource).toContain("md:col-start-2 md:row-start-1");
+    expect(appSource).toContain("w-full");
+    expect(appSource).not.toContain("max-w-3xl");
+  });
+
+  test("centers the mobile event selector in the top bar", () => {
+    expect(appSource).toContain("grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]");
+    expect(appSource).toContain("justify-self-center md:hidden");
+    expect(appSource).toContain("justify-self-end");
+  });
+});

@@ -10,7 +10,6 @@ describe("ScrambleBar", () => {
         scramble="R U R'"
         isLoading={false}
         error={null}
-        onEventChange={() => {}}
         onNext={() => {}}
         onCopy={() => {}}
       />,
@@ -21,25 +20,23 @@ describe("ScrambleBar", () => {
     expect(html).not.toContain(">Copy</button>");
   });
 
-  test("renders the event select with a shadcn select trigger", () => {
+  test("keeps event selection out of the scramble bar", () => {
     const html = renderToStaticMarkup(
       <ScrambleBar
         eventId="333"
         scramble="R U R'"
         isLoading={false}
         error={null}
-        onEventChange={() => {}}
         onNext={() => {}}
         onCopy={() => {}}
       />,
     );
 
-    expect(html).toContain('data-slot="select-trigger"');
-    expect(html).toContain("event-select-trigger");
-    expect(html).toContain("ChevronDown");
+    expect(html).not.toContain('data-slot="select-trigger"');
+    expect(html).not.toContain("event-select-trigger");
   });
 
-  test("disables event and next controls while locked", () => {
+  test("disables next control while locked", () => {
     const html = renderToStaticMarkup(
       <ScrambleBar
         eventId="333"
@@ -47,14 +44,11 @@ describe("ScrambleBar", () => {
         isLoading={false}
         error={null}
         disabled
-        onEventChange={() => {}}
         onNext={() => {}}
         onCopy={() => {}}
       />,
     );
 
-    expect(html).toContain('data-slot="select-trigger"');
-    expect(html).toContain('disabled=""');
     expect(html).toContain('<button type="button" disabled=""');
     expect(html).toContain(">Next</button>");
   });

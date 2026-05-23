@@ -1,12 +1,5 @@
 import type { PuzzleEvent } from "../sessions/types";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../shared/components/Select";
-import { PUZZLE_EVENTS, puzzleEventLabel } from "./eventMap";
+import { puzzleEventLabel } from "./eventMap";
 
 type ScrambleBarProps = {
   eventId: PuzzleEvent;
@@ -15,7 +8,6 @@ type ScrambleBarProps = {
   error: string | null;
   copied?: boolean;
   disabled?: boolean;
-  onEventChange: (eventId: PuzzleEvent) => void;
   onNext: () => void;
   onCopy: () => void;
 };
@@ -27,7 +19,6 @@ export function ScrambleBar({
   error,
   copied = false,
   disabled = false,
-  onEventChange,
   onNext,
   onCopy,
 }: ScrambleBarProps) {
@@ -56,22 +47,6 @@ export function ScrambleBar({
       </div>
       {error ? <p className="mt-2 text-xs text-amber-300">{error}</p> : null}
       <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-        <Select
-          value={eventId}
-          disabled={disabled}
-          onValueChange={(value) => onEventChange(value as PuzzleEvent)}
-        >
-          <SelectTrigger className="event-select-trigger w-30 font-mono text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PUZZLE_EVENTS.map((event) => (
-              <SelectItem key={event.id} value={event.id} className="font-mono text-xs">
-                {event.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         <button type="button" disabled={disabled} onClick={onNext} className="scramble-action">
           Next
         </button>

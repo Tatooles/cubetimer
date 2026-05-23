@@ -121,6 +121,29 @@ button:disabled {
   color: rgb(244 244 245);
 }
 
+.event-select-toolbar-trigger {
+  height: 36px;
+  min-width: 112px;
+  justify-content: center;
+  border-color: transparent;
+  background: transparent;
+  padding: 0 10px;
+  color: rgb(212 212 216);
+  box-shadow: none;
+}
+
+.event-select-toolbar-trigger:hover {
+  border-color: rgb(255 255 255 / 7%);
+  background: rgb(255 255 255 / 3%);
+  color: rgb(244 244 245);
+}
+
+.event-select-toolbar-trigger:focus {
+  border-color: rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 4%);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 10%);
+}
+
 .modal-button {
   flex: 1;
   border-radius: 6px;
