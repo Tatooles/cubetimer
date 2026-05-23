@@ -1,4 +1,11 @@
 import { Fragment } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../shared/components/Select";
 import { formatSolveTime } from "../timer/timerFormat";
 import { SolveList } from "./SolveList";
 import { sessionStats } from "./solveStats";
@@ -49,26 +56,30 @@ export function SessionSidebar({
         <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
           Session
         </div>
-        <select
+        <Select
           value={activeSessionId}
           disabled={disabled}
-          onChange={(event) => {
-            if (event.target.value === NEW_SESSION_VALUE) {
+          onValueChange={(value) => {
+            if (value === NEW_SESSION_VALUE) {
               onNewSession();
               return;
             }
 
-            onSessionChange(event.target.value);
+            onSessionChange(value);
           }}
-          className="w-full rounded-md border border-transparent bg-transparent py-1 pr-8 text-sm font-semibold text-zinc-100 outline-none hover:border-white/10 hover:bg-zinc-950 focus:border-indigo-400"
         >
-          {sessions.map((session) => (
-            <option key={session.id} value={session.id}>
-              {session.name}
-            </option>
-          ))}
-          <option value={NEW_SESSION_VALUE}>+ New session...</option>
-        </select>
+          <SelectTrigger className="session-select-trigger w-full border-white/15 bg-zinc-900/80 text-sm font-semibold shadow-[inset_0_1px_0_rgb(255_255_255_/_4%),0_0_0_1px_rgb(0_0_0_/_35%)] hover:border-white/25 hover:bg-zinc-800/70">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {sessions.map((session) => (
+              <SelectItem key={session.id} value={session.id}>
+                {session.name}
+              </SelectItem>
+            ))}
+            <SelectItem value={NEW_SESSION_VALUE}>+ New session...</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="mt-2 flex gap-4 font-mono text-[11px] text-zinc-600">
           <span>
             <b className="text-zinc-300">{stats.count}</b> solves

@@ -39,10 +39,6 @@ textarea {
   font: inherit;
 }
 
-select {
-  color-scheme: dark;
-}
-
 button {
   cursor: pointer;
 }

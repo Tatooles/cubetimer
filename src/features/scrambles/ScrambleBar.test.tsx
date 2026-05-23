@@ -21,6 +21,24 @@ describe("ScrambleBar", () => {
     expect(html).not.toContain(">Copy</button>");
   });
 
+  test("renders the event select with a shadcn select trigger", () => {
+    const html = renderToStaticMarkup(
+      <ScrambleBar
+        eventId="333"
+        scramble="R U R'"
+        isLoading={false}
+        error={null}
+        onEventChange={() => {}}
+        onNext={() => {}}
+        onCopy={() => {}}
+      />,
+    );
+
+    expect(html).toContain('data-slot="select-trigger"');
+    expect(html).toContain("event-select-trigger");
+    expect(html).toContain("ChevronDown");
+  });
+
   test("disables event and next controls while locked", () => {
     const html = renderToStaticMarkup(
       <ScrambleBar
@@ -35,7 +53,8 @@ describe("ScrambleBar", () => {
       />,
     );
 
-    expect(html).toContain('<select disabled=""');
+    expect(html).toContain('data-slot="select-trigger"');
+    expect(html).toContain('disabled=""');
     expect(html).toContain('<button type="button" disabled=""');
     expect(html).toContain(">Next</button>");
   });
