@@ -39,6 +39,10 @@ textarea {
   font: inherit;
 }
 
+select {
+  color-scheme: dark;
+}
+
 button {
   cursor: pointer;
 }
@@ -74,6 +78,23 @@ button:disabled {
 .scramble-action:hover {
   background: rgb(24 24 27 / 75%);
   color: rgb(244 244 245);
+}
+
+.scramble-copy-target {
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    color 120ms ease;
+}
+
+.scramble-copy-target:hover {
+  background: rgb(24 24 27 / 75%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+.scramble-copy-target:focus-visible {
+  outline: 1px solid rgb(129 140 248);
+  outline-offset: 3px;
 }
 
 .sidebar-button {

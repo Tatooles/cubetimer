@@ -30,6 +30,7 @@ import type {
 import { TimerSurface } from "./features/timer/TimerSurface";
 import { formatSolveTime } from "./features/timer/timerFormat";
 import { useTimerController } from "./features/timer/useTimerController";
+import { copyTextToClipboard } from "./shared/clipboard/copyTextToClipboard";
 import { readJson, writeJson } from "./shared/storage/localStorageStore";
 
 function updateSolveInState(state: AppState, solveId: string, patch: Partial<Solve>): AppState {
@@ -81,6 +82,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [activeSheet, setActiveSheet] = useState<MobileSheetId>(null);
+  const [scrambleCopied, setScrambleCopied] = useState(false);
   const scrambleRequestId = useRef(0);
 
   const session = activeSession(state);
@@ -93,6 +95,15 @@ function App() {
   useEffect(() => {
     writeJson(APP_STORAGE_KEY, state);
   }, [state]);
+
+  useEffect(() => {
+    if (!scrambleCopied) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setScrambleCopied(false), 1_500);
+    return () => window.clearTimeout(timeout);
+  }, [scrambleCopied]);
 
   const requestScramble = useCallback(async (eventId: PuzzleEvent) => {
     const requestId = scrambleRequestId.current + 1;
@@ -148,6 +159,15 @@ function App() {
     [requestScramble, timerLocked],
   );
 
+  const copyScramble = useCallback(async () => {
+    const scramble = state.currentScramble.trim();
+    if (!scramble) {
+      return;
+    }
+
+    setScrambleCopied(await copyTextToClipboard(scramble));
+  }, [state.currentScramble]);
+
   const toggleLastPenalty = useCallback((penalty: Penalty) => {
     setState((current) => {
       const currentSession = activeSession(current);
@@ -177,7 +197,7 @@ function App() {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
-      if (target.closest("input, textarea, select")) {
+      if (target.closest("button, input, textarea, select")) {
         return;
       }
 
@@ -353,6 +373,7 @@ function App() {
               scramble={state.currentScramble}
               isLoading={scrambleLoading}
               error={scrambleError}
+              copied={scrambleCopied}
               disabled={timerLocked}
               onEventChange={setEvent}
               onNext={() => {
@@ -362,7 +383,7 @@ function App() {
 
                 void requestScramble(state.eventId);
               }}
-              onCopy={() => void navigator.clipboard?.writeText(state.currentScramble)}
+              onCopy={() => void copyScramble()}
             />
             <TimerSurface
               stage={timerStage}

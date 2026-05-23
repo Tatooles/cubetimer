@@ -6,6 +6,7 @@ type ScrambleBarProps = {
   scramble: string;
   isLoading: boolean;
   error: string | null;
+  copied?: boolean;
   disabled?: boolean;
   onEventChange: (eventId: PuzzleEvent) => void;
   onNext: () => void;
@@ -17,6 +18,7 @@ export function ScrambleBar({
   scramble,
   isLoading,
   error,
+  copied = false,
   disabled = false,
   onEventChange,
   onNext,
@@ -31,16 +33,27 @@ export function ScrambleBar({
         <span className="h-1 w-1 rounded-full bg-indigo-400" />
         <span>{isLoading ? "Loading" : `${moves} moves`}</span>
       </div>
-      <p className="mx-auto max-w-4xl whitespace-pre-wrap text-balance font-mono text-base leading-relaxed tracking-normal text-zinc-100 md:text-[22px]">
+      <button
+        type="button"
+        aria-label="Copy scramble"
+        onClick={onCopy}
+        className="scramble-copy-target mx-auto block max-w-4xl whitespace-pre-wrap text-balance rounded-md px-3 py-1 font-mono text-base leading-relaxed tracking-normal text-zinc-100 md:text-[22px]"
+      >
         {scramble}
-      </p>
+      </button>
+      <div
+        aria-live="polite"
+        className="mt-1 h-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-indigo-300"
+      >
+        {copied ? "Copied" : ""}
+      </div>
       {error ? <p className="mt-2 text-xs text-amber-300">{error}</p> : null}
       <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
         <select
           value={eventId}
           disabled={disabled}
           onChange={(event) => onEventChange(event.target.value as PuzzleEvent)}
-          className="rounded-md border border-white/10 bg-black px-2.5 py-1.5 font-mono text-xs text-zinc-200 outline-none focus:border-indigo-400"
+          className="rounded-md border border-white/10 bg-black px-3 py-1.5 pr-8 font-mono text-xs text-zinc-200 outline-none focus:border-indigo-400"
         >
           {PUZZLE_EVENTS.map((event) => (
             <option key={event.id} value={event.id}>
@@ -50,9 +63,6 @@ export function ScrambleBar({
         </select>
         <button type="button" disabled={disabled} onClick={onNext} className="scramble-action">
           Next
-        </button>
-        <button type="button" onClick={onCopy} className="scramble-action">
-          Copy
         </button>
       </div>
     </section>

@@ -19,6 +19,7 @@ type SessionSidebarProps = {
 };
 
 const STAT_KEYS: StatKey[] = ["single", "ao5", "ao12", "ao50", "ao100"];
+const NEW_SESSION_VALUE = "__new_session__";
 
 export function SessionSidebar({
   sessions,
@@ -51,14 +52,22 @@ export function SessionSidebar({
         <select
           value={activeSessionId}
           disabled={disabled}
-          onChange={(event) => onSessionChange(event.target.value)}
-          className="w-full bg-transparent text-sm font-semibold text-zinc-100 outline-none"
+          onChange={(event) => {
+            if (event.target.value === NEW_SESSION_VALUE) {
+              onNewSession();
+              return;
+            }
+
+            onSessionChange(event.target.value);
+          }}
+          className="w-full rounded-md border border-transparent bg-transparent py-1 pr-8 text-sm font-semibold text-zinc-100 outline-none hover:border-white/10 hover:bg-zinc-950 focus:border-indigo-400"
         >
           {sessions.map((session) => (
             <option key={session.id} value={session.id}>
               {session.name}
             </option>
           ))}
+          <option value={NEW_SESSION_VALUE}>+ New session...</option>
         </select>
         <div className="mt-2 flex gap-4 font-mono text-[11px] text-zinc-600">
           <span>
