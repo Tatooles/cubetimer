@@ -76,6 +76,23 @@ button:disabled {
   color: rgb(244 244 245);
 }
 
+.scramble-copy-target {
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    color 120ms ease;
+}
+
+.scramble-copy-target:hover {
+  background: rgb(24 24 27 / 75%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+.scramble-copy-target:focus-visible {
+  outline: 1px solid rgb(129 140 248);
+  outline-offset: 3px;
+}
+
 .sidebar-button {
   flex: 1;
   border-radius: 6px;
@@ -102,6 +119,47 @@ button:disabled {
 .topbar-button:hover {
   background: rgb(24 24 27);
   color: rgb(244 244 245);
+}
+
+.event-select-toolbar-trigger {
+  height: 36px;
+  min-width: 112px;
+  justify-content: center;
+  border-color: transparent;
+  background: transparent;
+  padding: 0 10px;
+  color: rgb(212 212 216);
+  box-shadow: none;
+}
+
+.event-select-toolbar-trigger:hover {
+  border-color: rgb(255 255 255 / 7%);
+  background: rgb(255 255 255 / 3%);
+  color: rgb(244 244 245);
+}
+
+.event-select-toolbar-trigger:focus {
+  border-color: rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 4%);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 10%);
+}
+
+.event-more-trigger {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.event-more-trigger:hover,
+.event-more-trigger:focus {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mobile-session-sheet {
+  bottom: 4rem;
+  height: auto;
 }
 
 .modal-button {

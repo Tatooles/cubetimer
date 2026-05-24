@@ -1,4 +1,12 @@
 import { Fragment } from "react";
+import type { ComponentProps } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../shared/components/Select";
 import { formatSolveTime } from "../timer/timerFormat";
 import { SolveList } from "./SolveList";
 import { sessionStats } from "./solveStats";
@@ -7,8 +15,8 @@ import type { Session, Solve, StatKey } from "./types";
 type SessionSidebarProps = {
   sessions: Session[];
   activeSessionId: string;
-  mobileOpen?: boolean;
   disabled?: boolean;
+  className?: string;
   onSessionChange: (sessionId: string) => void;
   onNewSession: () => void;
   onClear: () => void;
@@ -19,12 +27,13 @@ type SessionSidebarProps = {
 };
 
 const STAT_KEYS: StatKey[] = ["single", "ao5", "ao12", "ao50", "ao100"];
+const NEW_SESSION_VALUE = "__new_session__";
 
 export function SessionSidebar({
   sessions,
   activeSessionId,
-  mobileOpen = false,
   disabled = false,
+  className,
   onSessionChange,
   onNewSession,
   onClear,
@@ -38,28 +47,36 @@ export function SessionSidebar({
 
   return (
     <aside
-      className={`z-30 flex min-h-0 flex-col border-white/[0.07] bg-[#0a0a0b] md:static md:translate-x-0 md:border-r ${
-        mobileOpen
-          ? "fixed inset-y-0 left-0 w-[min(360px,92vw)] translate-x-0 border-r shadow-2xl shadow-black/60"
-          : "fixed inset-y-0 left-0 w-[min(360px,92vw)] -translate-x-full border-r transition md:w-auto"
-      }`}
+      className={classNames("flex min-h-0 flex-col border-white/[0.07] bg-[#0a0a0b]", className)}
     >
       <div className="border-b border-white/[0.07] px-5 py-4 md:px-6">
         <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
           Session
         </div>
-        <select
+        <Select
           value={activeSessionId}
           disabled={disabled}
-          onChange={(event) => onSessionChange(event.target.value)}
-          className="w-full bg-transparent text-sm font-semibold text-zinc-100 outline-none"
+          onValueChange={(value) => {
+            if (value === NEW_SESSION_VALUE) {
+              onNewSession();
+              return;
+            }
+
+            onSessionChange(value);
+          }}
         >
-          {sessions.map((session) => (
-            <option key={session.id} value={session.id}>
-              {session.name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="session-select-trigger w-full border-white/15 bg-zinc-900/80 text-sm font-semibold shadow-[inset_0_1px_0_rgb(255_255_255_/_4%),0_0_0_1px_rgb(0_0_0_/_35%)] hover:border-white/25 hover:bg-zinc-800/70">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {sessions.map((session) => (
+              <SelectItem key={session.id} value={session.id}>
+                {session.name}
+              </SelectItem>
+            ))}
+            <SelectItem value={NEW_SESSION_VALUE}>+ New session...</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="mt-2 flex gap-4 font-mono text-[11px] text-zinc-600">
           <span>
             <b className="text-zinc-300">{stats.count}</b> solves
@@ -128,4 +145,10 @@ export function SessionSidebar({
       </div>
     </aside>
   );
+}
+
+function classNames(
+  ...values: Array<ComponentProps<"aside">["className"] | false | null | undefined>
+) {
+  return values.filter(Boolean).join(" ");
 }

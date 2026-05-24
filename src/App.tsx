@@ -3,6 +3,7 @@ import { Histogram } from "./features/analytics/Histogram";
 import { ProgressChart } from "./features/analytics/ProgressChart";
 import { MobileNav, type MobileSheetId } from "./features/mobile/MobileNav";
 import { MobileSheet } from "./features/mobile/MobileSheet";
+import { EventSelector } from "./features/scrambles/EventSelector";
 import { ScrambleBar } from "./features/scrambles/ScrambleBar";
 import { ScrambleDraw } from "./features/scrambles/ScrambleDraw";
 import { generateScramble } from "./features/scrambles/scrambleService";
@@ -30,6 +31,8 @@ import type {
 import { TimerSurface } from "./features/timer/TimerSurface";
 import { formatSolveTime } from "./features/timer/timerFormat";
 import { useTimerController } from "./features/timer/useTimerController";
+import { copyTextToClipboard } from "./shared/clipboard/copyTextToClipboard";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "./shared/components/Sheet";
 import { readJson, writeJson } from "./shared/storage/localStorageStore";
 
 function updateSolveInState(state: AppState, solveId: string, patch: Partial<Solve>): AppState {
@@ -81,6 +84,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [activeSheet, setActiveSheet] = useState<MobileSheetId>(null);
+  const [scrambleCopied, setScrambleCopied] = useState(false);
   const scrambleRequestId = useRef(0);
 
   const session = activeSession(state);
@@ -93,6 +97,15 @@ function App() {
   useEffect(() => {
     writeJson(APP_STORAGE_KEY, state);
   }, [state]);
+
+  useEffect(() => {
+    if (!scrambleCopied) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setScrambleCopied(false), 1_500);
+    return () => window.clearTimeout(timeout);
+  }, [scrambleCopied]);
 
   const requestScramble = useCallback(async (eventId: PuzzleEvent) => {
     const requestId = scrambleRequestId.current + 1;
@@ -148,6 +161,15 @@ function App() {
     [requestScramble, timerLocked],
   );
 
+  const copyScramble = useCallback(async () => {
+    const scramble = state.currentScramble.trim();
+    if (!scramble) {
+      return;
+    }
+
+    setScrambleCopied(await copyTextToClipboard(scramble));
+  }, [state.currentScramble]);
+
   const toggleLastPenalty = useCallback((penalty: Penalty) => {
     setState((current) => {
       const currentSession = activeSession(current);
@@ -177,15 +199,20 @@ function App() {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
-      if (target.closest("input, textarea, select")) {
-        return;
-      }
 
       if (event.key === "Escape") {
         setActiveSheet(null);
         setSettingsOpen(false);
         setShortcutsOpen(false);
         setSelectedSolveId(null);
+        return;
+      }
+
+      if (
+        target.closest(
+          "input, textarea, select, [contenteditable='true'], [data-global-shortcuts='ignore']",
+        )
+      ) {
         return;
       }
 
@@ -294,14 +321,17 @@ function App() {
     state.settings.density === "compact"
       ? "md:grid-cols-[264px_1fr_296px]"
       : "md:grid-cols-[296px_1fr_332px]";
+  const headerDensityClass = densityClass;
 
   return (
     <div className="min-h-svh bg-[#0a0a0b] text-zinc-100">
       <div
         className={`grid h-svh grid-rows-[56px_1fr_64px] overflow-hidden md:grid-rows-[56px_1fr] ${densityClass}`}
       >
-        <header className="col-span-full flex items-center gap-3 border-b border-white/[0.07] px-4 md:px-6">
-          <div className="flex items-center gap-2 font-mono text-sm font-semibold">
+        <header
+          className={`col-span-full grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-white/[0.07] px-4 md:grid-cols-subgrid md:gap-0 md:px-0 ${headerDensityClass}`}
+        >
+          <div className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden font-mono text-sm font-semibold md:col-start-1 md:row-start-1 md:px-6">
             <span className="grid h-4.5 w-4.5 grid-cols-2 gap-px rounded bg-zinc-100 p-px">
               <span className="rounded-[1px] bg-indigo-400" />
               <span className="rounded-[1px] bg-black" />
@@ -312,7 +342,25 @@ function App() {
               cube<span className="text-zinc-600">timer</span>
             </span>
           </div>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="min-w-0 justify-self-center md:hidden">
+            <EventSelector
+              eventId={state.eventId}
+              disabled={timerLocked}
+              mode="select"
+              onEventChange={setEvent}
+            />
+          </div>
+          <div className="hidden min-w-0 md:col-start-2 md:row-start-1 md:flex">
+            <div className="w-full">
+              <EventSelector
+                eventId={state.eventId}
+                disabled={timerLocked}
+                mode="tabs"
+                onEventChange={setEvent}
+              />
+            </div>
+          </div>
+          <div className="ml-auto flex shrink-0 items-center gap-1 justify-self-end md:col-start-3 md:row-start-1 md:px-6">
             <button type="button" onClick={() => setShortcutsOpen(true)} className="topbar-button">
               ?
             </button>
@@ -329,8 +377,8 @@ function App() {
         <SessionSidebar
           sessions={state.sessions}
           activeSessionId={state.selectedSessionId}
-          mobileOpen={activeSheet === "session"}
           disabled={timerLocked}
+          className="hidden md:col-start-1 md:flex md:border-r"
           onSessionChange={(sessionId) => {
             if (timerLocked) {
               return;
@@ -353,8 +401,8 @@ function App() {
               scramble={state.currentScramble}
               isLoading={scrambleLoading}
               error={scrambleError}
+              copied={scrambleCopied}
               disabled={timerLocked}
-              onEventChange={setEvent}
               onNext={() => {
                 if (timerLocked) {
                   return;
@@ -362,7 +410,7 @@ function App() {
 
                 void requestScramble(state.eventId);
               }}
-              onCopy={() => void navigator.clipboard?.writeText(state.currentScramble)}
+              onCopy={() => void copyScramble()}
             />
             <TimerSurface
               stage={timerStage}
@@ -408,14 +456,44 @@ function App() {
         />
       </div>
 
-      {activeSheet === "session" ? (
-        <button
-          type="button"
-          aria-label="Close session"
-          className="fixed inset-x-0 top-0 bottom-16 z-20 bg-black/45 md:hidden"
-          onClick={() => setActiveSheet(null)}
-        />
-      ) : null}
+      <Sheet
+        modal={false}
+        open={activeSheet === "session"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setActiveSheet(null);
+          }
+        }}
+      >
+        <SheetContent
+          side="left"
+          className="mobile-session-sheet w-[min(320px,88vw)] overflow-hidden border-white/[0.07] bg-[#0a0a0b] p-0"
+        >
+          <SheetTitle className="sr-only">Session</SheetTitle>
+          <SheetDescription className="sr-only">
+            Session stats, solve history, and session actions.
+          </SheetDescription>
+          <SessionSidebar
+            sessions={state.sessions}
+            activeSessionId={state.selectedSessionId}
+            disabled={timerLocked}
+            className="h-full"
+            onSessionChange={(sessionId) => {
+              if (timerLocked) {
+                return;
+              }
+
+              setState((current) => ({ ...current, selectedSessionId: sessionId }));
+            }}
+            onNewSession={createSession}
+            onClear={clearSession}
+            onExport={exportSession}
+            onOpenSolve={(solve) => setSelectedSolveId(solve.id)}
+            onPenalty={updatePenalty}
+            onDelete={deleteSolve}
+          />
+        </SheetContent>
+      </Sheet>
       <MobileSheet
         active={activeSheet}
         sheetId="graph"
