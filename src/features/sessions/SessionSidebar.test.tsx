@@ -48,6 +48,12 @@ describe("SessionSidebar", () => {
     expect(html).toContain("border-white/15");
   });
 
+  test("leaves mobile presentation to the sheet component", () => {
+    expect(sidebarSource).not.toContain("mobileOpen");
+    expect(sidebarSource).not.toContain("translate-x-full");
+    expect(sidebarSource).not.toContain("fixed inset-y-0");
+  });
+
   test("disables session mutation controls while locked", () => {
     const html = renderToStaticMarkup(
       <SessionSidebar

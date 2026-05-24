@@ -27,3 +27,14 @@ describe("App event selector layout", () => {
     expect(appSource).toContain("justify-self-end");
   });
 });
+
+describe("App mobile panels", () => {
+  test("uses the shared sheet primitive for the mobile session panel", () => {
+    expect(appSource).toContain('from "./shared/components/Sheet"');
+    expect(appSource).toContain("<Sheet");
+    expect(appSource).toContain("<SheetContent");
+    expect(appSource).toContain("<SheetDescription");
+    expect(appSource).toContain("modal={false}");
+    expect(appSource).not.toContain('aria-label="Close session"');
+  });
+});

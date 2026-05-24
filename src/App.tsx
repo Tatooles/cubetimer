@@ -32,6 +32,7 @@ import { TimerSurface } from "./features/timer/TimerSurface";
 import { formatSolveTime } from "./features/timer/timerFormat";
 import { useTimerController } from "./features/timer/useTimerController";
 import { copyTextToClipboard } from "./shared/clipboard/copyTextToClipboard";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "./shared/components/Sheet";
 import { readJson, writeJson } from "./shared/storage/localStorageStore";
 
 function updateSolveInState(state: AppState, solveId: string, patch: Partial<Solve>): AppState {
@@ -371,8 +372,8 @@ function App() {
         <SessionSidebar
           sessions={state.sessions}
           activeSessionId={state.selectedSessionId}
-          mobileOpen={activeSheet === "session"}
           disabled={timerLocked}
+          className="hidden md:col-start-1 md:flex md:border-r"
           onSessionChange={(sessionId) => {
             if (timerLocked) {
               return;
@@ -450,14 +451,44 @@ function App() {
         />
       </div>
 
-      {activeSheet === "session" ? (
-        <button
-          type="button"
-          aria-label="Close session"
-          className="fixed inset-x-0 top-0 bottom-16 z-20 bg-black/45 md:hidden"
-          onClick={() => setActiveSheet(null)}
-        />
-      ) : null}
+      <Sheet
+        modal={false}
+        open={activeSheet === "session"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setActiveSheet(null);
+          }
+        }}
+      >
+        <SheetContent
+          side="left"
+          className="mobile-session-sheet w-[min(320px,88vw)] overflow-hidden border-white/[0.07] bg-[#0a0a0b] p-0"
+        >
+          <SheetTitle className="sr-only">Session</SheetTitle>
+          <SheetDescription className="sr-only">
+            Session stats, solve history, and session actions.
+          </SheetDescription>
+          <SessionSidebar
+            sessions={state.sessions}
+            activeSessionId={state.selectedSessionId}
+            disabled={timerLocked}
+            className="h-full"
+            onSessionChange={(sessionId) => {
+              if (timerLocked) {
+                return;
+              }
+
+              setState((current) => ({ ...current, selectedSessionId: sessionId }));
+            }}
+            onNewSession={createSession}
+            onClear={clearSession}
+            onExport={exportSession}
+            onOpenSolve={(solve) => setSelectedSolveId(solve.id)}
+            onPenalty={updatePenalty}
+            onDelete={deleteSolve}
+          />
+        </SheetContent>
+      </Sheet>
       <MobileSheet
         active={activeSheet}
         sheetId="graph"

@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import type { ComponentProps } from "react";
 import {
   Select,
   SelectContent,
@@ -14,8 +15,8 @@ import type { Session, Solve, StatKey } from "./types";
 type SessionSidebarProps = {
   sessions: Session[];
   activeSessionId: string;
-  mobileOpen?: boolean;
   disabled?: boolean;
+  className?: string;
   onSessionChange: (sessionId: string) => void;
   onNewSession: () => void;
   onClear: () => void;
@@ -31,8 +32,8 @@ const NEW_SESSION_VALUE = "__new_session__";
 export function SessionSidebar({
   sessions,
   activeSessionId,
-  mobileOpen = false,
   disabled = false,
+  className,
   onSessionChange,
   onNewSession,
   onClear,
@@ -46,11 +47,7 @@ export function SessionSidebar({
 
   return (
     <aside
-      className={`z-30 flex min-h-0 flex-col border-white/[0.07] bg-[#0a0a0b] md:static md:translate-x-0 md:border-r ${
-        mobileOpen
-          ? "fixed inset-y-0 left-0 w-[min(360px,92vw)] translate-x-0 border-r shadow-2xl shadow-black/60"
-          : "fixed inset-y-0 left-0 w-[min(360px,92vw)] -translate-x-full border-r transition md:w-auto"
-      }`}
+      className={classNames("flex min-h-0 flex-col border-white/[0.07] bg-[#0a0a0b]", className)}
     >
       <div className="border-b border-white/[0.07] px-5 py-4 md:px-6">
         <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
@@ -148,4 +145,10 @@ export function SessionSidebar({
       </div>
     </aside>
   );
+}
+
+function classNames(
+  ...values: Array<ComponentProps<"aside">["className"] | false | null | undefined>
+) {
+  return values.filter(Boolean).join(" ");
 }

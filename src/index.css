@@ -157,6 +157,11 @@ button:disabled {
   box-shadow: none;
 }
 
+.mobile-session-sheet {
+  bottom: 4rem;
+  height: auto;
+}
+
 .modal-button {
   flex: 1;
   border-radius: 6px;
