@@ -23,6 +23,7 @@ export function TabsTrigger({ className, ...props }: ComponentProps<typeof TabsP
   return (
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
+      data-global-shortcuts="ignore"
       className={classNames(
         "relative inline-flex h-full min-w-16 items-center justify-center px-4 text-sm font-medium text-zinc-500 outline-none transition hover:text-zinc-200 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-indigo-400 disabled:pointer-events-none disabled:opacity-50 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 data-[state=active]:text-indigo-200 data-[state=active]:after:bg-indigo-300",
         className,

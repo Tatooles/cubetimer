@@ -22,6 +22,7 @@ export function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
+      data-global-shortcuts="ignore"
       className={classNames(
         "flex h-11 items-center justify-between gap-2 rounded-md border border-white/12 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition hover:border-white/20 hover:bg-zinc-900 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/35 disabled:cursor-not-allowed disabled:opacity-50",
         className,

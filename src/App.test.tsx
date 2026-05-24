@@ -10,6 +10,13 @@ describe("App keyboard listeners", () => {
     expect(appSource).not.toContain("button, input");
     expect(appSource).toContain("input, textarea, select");
   });
+
+  test("lets custom selector controls handle non-escape keys", () => {
+    expect(appSource).toContain("[data-global-shortcuts='ignore']");
+    expect(appSource.indexOf('event.key === "Escape"')).toBeLessThan(
+      appSource.indexOf("[data-global-shortcuts='ignore']"),
+    );
+  });
 });
 
 describe("App event selector layout", () => {

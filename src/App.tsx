@@ -199,15 +199,20 @@ function App() {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
-      if (target.closest("input, textarea, select, [contenteditable='true']")) {
-        return;
-      }
 
       if (event.key === "Escape") {
         setActiveSheet(null);
         setSettingsOpen(false);
         setShortcutsOpen(false);
         setSelectedSolveId(null);
+        return;
+      }
+
+      if (
+        target.closest(
+          "input, textarea, select, [contenteditable='true'], [data-global-shortcuts='ignore']",
+        )
+      ) {
         return;
       }
 
