@@ -47,6 +47,7 @@ export function SelectContent({
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         data-slot="select-content"
+        data-global-shortcuts="ignore"
         position={position}
         className={classNames(
           "z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-md border border-white/12 bg-zinc-950 text-zinc-100 shadow-xl shadow-black/45",
