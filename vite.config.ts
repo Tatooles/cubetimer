@@ -7,19 +7,14 @@ import tailwindcss from "@tailwindcss/vite";
 const resolveModulePreloadDependencies: ResolveModulePreloadDependenciesFn = (
   _filename,
   deps,
-  { hostId, hostType },
+  { hostType },
 ) => {
-  if (hostType === "js" && isCubingSearchWorker(hostId)) {
+  if (hostType === "js") {
     return [];
   }
 
   return deps;
 };
-
-function isCubingSearchWorker(hostId: string): boolean {
-  const fileName = hostId.split("/").pop() ?? "";
-  return fileName.startsWith("search-worker-entry-") && fileName.endsWith(".js");
-}
 
 // https://vite.dev/config/
 export default defineConfig({
