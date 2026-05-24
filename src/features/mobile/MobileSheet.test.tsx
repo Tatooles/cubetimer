@@ -21,4 +21,8 @@ describe("MobileSheet", () => {
     expect(drawerSource).not.toContain("overflow-y-auto");
     expect(drawerSource).toContain("overflow-hidden");
   });
+
+  test("keeps mobile drawers non-modal so bottom nav can switch panels in one tap", () => {
+    expect(mobileSheetSource).toContain("modal={false}");
+  });
 });

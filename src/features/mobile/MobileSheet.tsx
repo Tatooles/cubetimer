@@ -19,6 +19,7 @@ type MobileSheetProps = {
 export function MobileSheet({ active, title, sheetId, children, onClose }: MobileSheetProps) {
   return (
     <Drawer
+      modal={false}
       open={active === sheetId}
       onOpenChange={(open) => {
         if (!open) {

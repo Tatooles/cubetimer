@@ -20,7 +20,7 @@ const ITEMS: Array<{ id: Exclude<MobileSheetId, null>; label: string; icon: stri
 
 export function MobileNav({ active, disabled, onSelect }: MobileNavProps) {
   return (
-    <nav className="z-50 grid h-16 grid-cols-5 border-t border-white/[0.07] bg-[#0a0a0b] pb-[env(safe-area-inset-bottom,0px)] md:hidden">
+    <nav className="pointer-events-auto relative z-50 grid h-16 grid-cols-5 border-t border-white/[0.07] bg-[#0a0a0b] pb-[env(safe-area-inset-bottom,0px)] md:hidden">
       {ITEMS.map((item) => {
         const itemDisabled =
           (item.id === "graph" && disabled.graph) ||
