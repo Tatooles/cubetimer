@@ -5,6 +5,11 @@ describe("App keyboard listeners", () => {
   test("does not depend on the unstable timer result object", () => {
     expect(appSource).not.toContain(", timer,");
   });
+
+  test("keeps global shortcuts active when buttons have focus", () => {
+    expect(appSource).not.toContain("button, input");
+    expect(appSource).toContain("input, textarea, select");
+  });
 });
 
 describe("App event selector layout", () => {

@@ -199,7 +199,7 @@ function App() {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
-      if (target.closest("button, input, textarea, select")) {
+      if (target.closest("input, textarea, select, [contenteditable='true']")) {
         return;
       }
 
