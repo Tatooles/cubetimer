@@ -71,7 +71,14 @@ function AdaptiveEventTabs({ eventId, disabled, onEventChange }: Omit<EventSelec
       setVisibleCount(Math.max(1, Math.floor((width - MORE_WIDTH) / MIN_TAB_WIDTH)));
     }
 
-    fit(container.clientWidth);
+    const fitContainer = () => fit(container.clientWidth);
+
+    fitContainer();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", fitContainer);
+      return () => window.removeEventListener("resize", fitContainer);
+    }
+
     const observer = new ResizeObserver((entries) => {
       fit(entries[0]?.contentRect.width ?? container.clientWidth);
     });

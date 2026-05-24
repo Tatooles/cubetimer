@@ -12,7 +12,7 @@ function getBrowserClipboard(): ClipboardWriter | undefined {
 }
 
 function legacyCopyText(text: string): boolean {
-  if (typeof document === "undefined") {
+  if (typeof document === "undefined" || typeof document.execCommand !== "function") {
     return false;
   }
 
@@ -28,9 +28,13 @@ function legacyCopyText(text: string): boolean {
   textarea.select();
   textarea.setSelectionRange(0, text.length);
 
-  const copied = document.execCommand("copy");
-  textarea.remove();
-  return copied;
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+  }
 }
 
 export async function copyTextToClipboard(
