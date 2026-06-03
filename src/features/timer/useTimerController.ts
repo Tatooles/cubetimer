@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { onUnmounted, readonly, ref } from "vue";
 
 export type TimerStage = "idle" | "holding" | "ready" | "running";
 
@@ -11,91 +11,85 @@ export function stoppedTimerSnapshot(elapsedMs: number): TimerSnapshot {
   return { stage: "idle", elapsedMs };
 }
 
-export function useTimerController(
-  onSolve: (ms: number) => void,
-  holdMs = 350,
-): TimerSnapshot & {
-  press: () => void;
-  release: () => void;
-  stop: () => void;
-} {
-  const [snapshot, setSnapshot] = useState<TimerSnapshot>({ stage: "idle", elapsedMs: 0 });
-  const stageRef = useRef<TimerStage>("idle");
-  const holdTimerRef = useRef<number | null>(null);
-  const startRef = useRef(0);
-  const frameRef = useRef<number | null>(null);
+export function useTimerController(onSolve: (ms: number) => void, holdMs = 350) {
+  const stage = ref<TimerStage>("idle");
+  const elapsedMs = ref(0);
+  let holdTimer: number | null = null;
+  let frame: number | null = null;
+  let start = 0;
 
-  const setStage = useCallback((stage: TimerStage, elapsedMs = 0) => {
-    stageRef.current = stage;
-    setSnapshot({ stage, elapsedMs });
-  }, []);
+  function setStage(nextStage: TimerStage, nextElapsedMs = 0) {
+    stage.value = nextStage;
+    elapsedMs.value = nextElapsedMs;
+  }
 
-  const clearTimers = useCallback(() => {
-    if (holdTimerRef.current != null) {
-      window.clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
+  function clearTimers() {
+    if (holdTimer != null) {
+      window.clearTimeout(holdTimer);
+      holdTimer = null;
     }
 
-    if (frameRef.current != null) {
-      window.cancelAnimationFrame(frameRef.current);
-      frameRef.current = null;
+    if (frame != null) {
+      window.cancelAnimationFrame(frame);
+      frame = null;
     }
-  }, []);
+  }
 
-  const tick = useCallback(() => {
-    if (stageRef.current !== "running") {
+  function tick() {
+    if (stage.value !== "running") {
       return;
     }
 
-    setSnapshot({ stage: "running", elapsedMs: performance.now() - startRef.current });
-    frameRef.current = window.requestAnimationFrame(tick);
-  }, []);
+    elapsedMs.value = performance.now() - start;
+    frame = window.requestAnimationFrame(tick);
+  }
 
-  const stop = useCallback(() => {
-    if (stageRef.current !== "running") {
+  function stop() {
+    if (stage.value !== "running") {
       return;
     }
 
-    const elapsedMs = performance.now() - startRef.current;
-    const stoppedSnapshot = stoppedTimerSnapshot(elapsedMs);
+    const nextElapsedMs = performance.now() - start;
+    const stoppedSnapshot = stoppedTimerSnapshot(nextElapsedMs);
     clearTimers();
     setStage(stoppedSnapshot.stage, stoppedSnapshot.elapsedMs);
-    onSolve(Math.max(1, Math.round(elapsedMs)));
-  }, [clearTimers, onSolve, setStage]);
+    onSolve(Math.max(1, Math.round(nextElapsedMs)));
+  }
 
-  const press = useCallback(() => {
-    if (stageRef.current === "running") {
+  function press() {
+    if (stage.value === "running") {
       stop();
       return;
     }
 
-    if (stageRef.current !== "idle") {
+    if (stage.value !== "idle") {
       return;
     }
 
     setStage("holding", 0);
-    holdTimerRef.current = window.setTimeout(() => setStage("ready", 0), holdMs);
-  }, [holdMs, setStage, stop]);
+    holdTimer = window.setTimeout(() => setStage("ready", 0), holdMs);
+  }
 
-  const release = useCallback(() => {
-    if (stageRef.current === "ready") {
+  function release() {
+    if (stage.value === "ready") {
       clearTimers();
-      startRef.current = performance.now();
+      start = performance.now();
       setStage("running", 0);
-      frameRef.current = window.requestAnimationFrame(tick);
+      frame = window.requestAnimationFrame(tick);
       return;
     }
 
-    if (stageRef.current === "holding") {
+    if (stage.value === "holding") {
       clearTimers();
       setStage("idle", 0);
     }
-  }, [clearTimers, setStage, tick]);
+  }
 
-  useEffect(() => clearTimers, [clearTimers]);
+  onUnmounted(clearTimers);
 
   return {
-    ...snapshot,
+    stage: readonly(stage),
+    elapsedMs: readonly(elapsedMs),
     press,
     release,
     stop,

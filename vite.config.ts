@@ -1,7 +1,6 @@
 import { defineConfig } from "vite-plus";
 import type { ResolveModulePreloadDependenciesFn } from "vite";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import babel from "@rolldown/plugin-babel";
+import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
 
 const resolveModulePreloadDependencies: ResolveModulePreloadDependenciesFn = (
@@ -32,7 +31,7 @@ export default defineConfig({
     ignorePatterns: [".vite/**", "dist/**", "docs/claude-design/**"],
   },
   lint: {
-    plugins: ["oxc", "typescript", "unicorn", "react"],
+    plugins: ["oxc", "typescript", "unicorn"],
     categories: {
       correctness: "warn",
     },
@@ -42,7 +41,7 @@ export default defineConfig({
     ignorePatterns: [".vite/**", "dist/**", "docs/claude-design/**"],
     overrides: [
       {
-        files: ["**/*.{ts,tsx}"],
+        files: ["**/*.{ts,vue}"],
         rules: {
           "constructor-super": "error",
           "for-direction": "error",
@@ -125,17 +124,15 @@ export default defineConfig({
           "typescript/prefer-as-const": "error",
           "typescript/prefer-namespace-keyword": "error",
           "typescript/triple-slash-reference": "error",
-          "react/rules-of-hooks": "error",
-          "react/exhaustive-deps": "warn",
-          "react/only-export-components": [
-            "error",
-            {
-              allowConstantExport: true,
-            },
-          ],
         },
         env: {
           browser: true,
+        },
+      },
+      {
+        files: ["**/*.vue"],
+        rules: {
+          "no-undef": "off",
         },
       },
     ],
@@ -144,5 +141,5 @@ export default defineConfig({
       typeCheck: true,
     },
   },
-  plugins: [react(), babel({ presets: [reactCompilerPreset()] }), tailwindcss()],
+  plugins: [vue(), tailwindcss()],
 });

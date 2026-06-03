@@ -39,6 +39,12 @@ textarea {
   font: inherit;
 }
 
+button,
+select {
+  background: transparent;
+  border: 0;
+}
+
 button {
   cursor: pointer;
 }

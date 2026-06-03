@@ -5,37 +5,27 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "build": "tsc -b && vp build",
+    "build": "vue-tsc -b && vp build",
     "lint": "vp lint .",
     "preview": "vp preview"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
     "cubing": "^0.63.3",
-    "lucide-react": "^1.16.0",
-    "radix-ui": "^1.4.3",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
     "tailwindcss": "^4.3.0",
-    "vaul": "^1.1.2"
+    "vue": "^3.5.35"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
     "@eslint/js": "^10.0.1",
-    "@rolldown/plugin-babel": "^0.2.3",
-    "@types/babel__core": "^7.20.5",
     "@types/node": "^24.12.3",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "babel-plugin-react-compiler": "^1.0.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vue/test-utils": "^2.4.10",
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "vue-tsc": "^3.3.3"
   },
   "packageManager": "pnpm@11.1.2"
 }
