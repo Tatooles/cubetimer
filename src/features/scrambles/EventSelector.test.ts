@@ -3,8 +3,10 @@ import selectorSource from "./EventSelector.vue?raw";
 
 describe("EventSelector", () => {
   test("renders desktop event selection as tabs with overflow select", () => {
-    expect(selectorSource).toContain('data-slot="tabs-list"');
-    expect(selectorSource).toContain('data-slot="tabs-trigger"');
+    expect(selectorSource).toContain('from "@/components/ui/select"');
+    expect(selectorSource).toContain('from "@/components/ui/tabs"');
+    expect(selectorSource).toContain("<TabsList");
+    expect(selectorSource).toContain("<TabsTrigger");
     expect(selectorSource).toContain("event-more-trigger");
     expect(selectorSource).toContain("more");
     expect(selectorSource).toContain("overflowEvents");
@@ -21,7 +23,7 @@ describe("EventSelector", () => {
   test("keeps the more trigger content-width in the timer column", () => {
     const moreTriggerClass = selectorSource.match(/'([^']*event-more-trigger[^']*)'/)?.[1] ?? "";
 
-    expect(selectorSource).toContain("event-tabs-list event-tabs-strip flex w-full");
+    expect(selectorSource).toContain("event-tabs-list event-tabs-strip");
     expect(moreTriggerClass).toContain("w-auto");
     expect(moreTriggerClass).toContain("min-w-20");
     expect(moreTriggerClass).not.toContain("flex-1");
@@ -35,7 +37,7 @@ describe("EventSelector", () => {
 
   test("renders mobile event selection as a select", () => {
     expect(selectorSource).toContain("mode === 'select'");
-    expect(selectorSource).toContain('data-slot="select-trigger"');
+    expect(selectorSource).toContain("<SelectTrigger");
     expect(selectorSource).toContain("event-select-trigger");
     expect(selectorSource).toContain("event-select-toolbar-trigger");
     expect(selectorSource).toContain("border-transparent");

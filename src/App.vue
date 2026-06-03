@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import Histogram from "./features/analytics/Histogram.vue";
 import ProgressChart from "./features/analytics/ProgressChart.vue";
 import MobileNav from "./features/mobile/MobileNav.vue";
@@ -454,39 +456,41 @@ onUnmounted(() => {
       />
     </div>
 
-    <Teleport to="body">
-      <div v-if="activeSheet === 'session'" data-slot="sheet">
-        <button
-          type="button"
-          aria-label="Close session"
-          data-slot="sheet-overlay"
-          class="fixed inset-0 z-20 bg-black/45 md:hidden"
-          @click="activeSheet = null"
+    <Sheet
+      :open="activeSheet === 'session'"
+      :modal="false"
+      @update:open="
+        (open) => {
+          if (!open) {
+            activeSheet = null;
+          }
+        }
+      "
+    >
+      <SheetContent
+        side="left"
+        :show-close-button="false"
+        class="mobile-session-sheet w-[min(320px,88vw)] overflow-hidden border-white/[0.07] bg-[#0a0a0b] p-0 shadow-2xl shadow-black/70 md:hidden"
+      >
+        <SheetTitle class="sr-only">Session</SheetTitle>
+        <SheetDescription class="sr-only">
+          Session stats, solve history, and session actions.
+        </SheetDescription>
+        <SessionSidebar
+          :sessions="state.sessions"
+          :active-session-id="state.selectedSessionId"
+          :disabled="timerLocked"
+          class-name="h-full"
+          @session-change="selectSession"
+          @new-session="createSession"
+          @clear="clearSession"
+          @export="exportSession"
+          @open-solve="(solve) => (selectedSolveId = solve.id)"
+          @penalty="updatePenalty"
+          @delete="deleteSolve"
         />
-        <section
-          data-slot="sheet-content"
-          class="mobile-session-sheet fixed inset-y-0 left-0 z-30 h-full w-[min(320px,88vw)] overflow-hidden border-r border-white/[0.07] bg-[#0a0a0b] p-0 shadow-2xl shadow-black/70 outline-none md:hidden"
-        >
-          <h2 data-slot="sheet-title" class="sr-only">Session</h2>
-          <p data-slot="sheet-description" class="sr-only">
-            Session stats, solve history, and session actions.
-          </p>
-          <SessionSidebar
-            :sessions="state.sessions"
-            :active-session-id="state.selectedSessionId"
-            :disabled="timerLocked"
-            class-name="h-full"
-            @session-change="selectSession"
-            @new-session="createSession"
-            @clear="clearSession"
-            @export="exportSession"
-            @open-solve="(solve) => (selectedSolveId = solve.id)"
-            @penalty="updatePenalty"
-            @delete="deleteSolve"
-          />
-        </section>
-      </div>
-    </Teleport>
+      </SheetContent>
+    </Sheet>
 
     <MobileSheet
       :active="activeSheet"
@@ -530,15 +534,17 @@ onUnmounted(() => {
       @close="settingsOpen = false"
     />
 
-    <div
-      v-if="shortcutsOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      @mousedown="shortcutsOpen = false"
-    >
-      <section class="min-w-80 rounded-xl border border-white/10 bg-zinc-950 p-5" @mousedown.stop>
-        <h2 class="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700">
+    <Dialog v-model:open="shortcutsOpen">
+      <DialogContent
+        :show-close-button="false"
+        class="max-w-80 border-white/10 bg-zinc-950 p-5 text-zinc-500"
+      >
+        <DialogTitle
+          class="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700"
+        >
           Keyboard shortcuts
-        </h2>
+        </DialogTitle>
+        <DialogDescription class="sr-only">Keyboard shortcut reference.</DialogDescription>
         <dl class="grid grid-cols-[auto_1fr] gap-x-5 gap-y-3 text-sm text-zinc-500">
           <dt class="font-mono text-zinc-200">Space</dt>
           <dd>Hold, release, stop</dd>
@@ -551,8 +557,8 @@ onUnmounted(() => {
           <dt class="font-mono text-zinc-200">Esc</dt>
           <dd>Close panels</dd>
         </dl>
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
 
     <SolveDetailModal
       :solve="selectedSolve"

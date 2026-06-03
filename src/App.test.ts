@@ -36,11 +36,11 @@ describe("App event selector layout", () => {
 });
 
 describe("App mobile panels", () => {
-  test("uses Vue sheet markup for the mobile session panel", () => {
-    expect(appSource).toContain('data-slot="sheet"');
-    expect(appSource).toContain('data-slot="sheet-content"');
-    expect(appSource).toContain('data-slot="sheet-description"');
-    expect(appSource).toContain("<Teleport");
+  test("uses ShadCN Vue sheet primitives for the mobile session panel", () => {
+    expect(appSource).toContain('from "@/components/ui/sheet"');
+    expect(appSource).toContain("<Sheet");
+    expect(appSource).toContain("<SheetContent");
+    expect(appSource).toContain("<SheetDescription");
   });
 });
 

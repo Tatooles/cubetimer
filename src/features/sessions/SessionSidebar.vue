@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatSolveTime } from "../timer/timerFormat";
 import SolveList from "./SolveList.vue";
 import { sessionStats } from "./solveStats";
@@ -36,7 +44,11 @@ const activeSession = computed(
 );
 const stats = computed(() => sessionStats(activeSession.value.solves));
 
-function changeSession(value: string) {
+function changeSession(value: unknown) {
+  if (typeof value !== "string") {
+    return;
+  }
+
   if (value === newSessionValue) {
     emit("newSession");
     return;
@@ -60,19 +72,24 @@ function statValue(value: number | null): string {
       <div class="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
         Session
       </div>
-      <select
-        data-slot="select-trigger"
-        data-global-shortcuts="ignore"
-        :value="activeSessionId"
+      <Select
+        :model-value="activeSessionId"
         :disabled="disabled"
-        class="session-select-trigger h-11 w-full rounded-md border border-white/15 bg-zinc-900/80 px-3 py-2 text-sm font-semibold text-zinc-100 shadow-[inset_0_1px_0_rgb(255_255_255_/_4%),0_0_0_1px_rgb(0_0_0_/_35%)] outline-none hover:border-white/25 hover:bg-zinc-800/70 disabled:cursor-not-allowed disabled:opacity-50"
-        @change="changeSession(($event.target as HTMLSelectElement).value)"
+        @update:model-value="changeSession"
       >
-        <option v-for="session in sessions" :key="session.id" :value="session.id">
-          {{ session.name }}
-        </option>
-        <option :value="newSessionValue">+ New session...</option>
-      </select>
+        <SelectTrigger
+          data-global-shortcuts="ignore"
+          class="session-select-trigger h-11 w-full border-white/15 bg-zinc-900/80 text-sm font-semibold text-zinc-100 shadow-[inset_0_1px_0_rgb(255_255_255_/_4%),0_0_0_1px_rgb(0_0_0_/_35%)] hover:border-white/25 hover:bg-zinc-800/70"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem v-for="session in sessions" :key="session.id" :value="session.id">
+            {{ session.name }}
+          </SelectItem>
+          <SelectItem :value="newSessionValue">+ New session...</SelectItem>
+        </SelectContent>
+      </Select>
       <div class="mt-2 flex gap-4 font-mono text-[11px] text-zinc-600">
         <span
           ><b class="text-zinc-300">{{ stats.count }}</b> solves</span
@@ -112,18 +129,27 @@ function statValue(value: number | null): string {
       @delete="emit('delete', $event)"
     />
     <div class="flex gap-2 border-t border-white/[0.07] px-5 py-3 md:px-6">
-      <button type="button" :disabled="disabled" class="sidebar-button" @click="emit('newSession')">
-        New
-      </button>
-      <button type="button" class="sidebar-button" @click="emit('export')">Export</button>
-      <button
+      <Button
         type="button"
         :disabled="disabled"
+        variant="outline"
+        class="sidebar-button h-auto"
+        @click="emit('newSession')"
+      >
+        New
+      </Button>
+      <Button type="button" variant="outline" class="sidebar-button h-auto" @click="emit('export')">
+        Export
+      </Button>
+      <Button
+        type="button"
+        :disabled="disabled"
+        variant="outline"
         class="sidebar-button text-red-300"
         @click="emit('clear')"
       >
         Clear
-      </button>
+      </Button>
     </div>
   </aside>
 </template>

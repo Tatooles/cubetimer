@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite-plus";
 import type { ResolveModulePreloadDependenciesFn } from "vite";
 import vue from "@vitejs/plugin-vue";
@@ -25,6 +26,11 @@ export default defineConfig({
   build: {
     modulePreload: {
       resolveDependencies: resolveModulePreloadDependencies,
+    },
+  },
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
   fmt: {

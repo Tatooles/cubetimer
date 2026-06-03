@@ -2,10 +2,11 @@ import { describe, expect, test } from "vite-plus/test";
 import mobileSheetSource from "./MobileSheet.vue?raw";
 
 describe("MobileSheet", () => {
-  test("uses Vue drawer markup without a redundant top close button", () => {
-    expect(mobileSheetSource).toContain('data-slot="drawer"');
-    expect(mobileSheetSource).toContain('data-slot="drawer-content"');
-    expect(mobileSheetSource).toContain('data-slot="drawer-description"');
+  test("uses ShadCN Vue drawer primitives without a redundant top close button", () => {
+    expect(mobileSheetSource).toContain('from "@/components/ui/drawer"');
+    expect(mobileSheetSource).toContain("<Drawer");
+    expect(mobileSheetSource).toContain("<DrawerContent");
+    expect(mobileSheetSource).toContain("<DrawerDescription");
     expect(mobileSheetSource).not.toContain("DrawerClose");
     expect(mobileSheetSource).not.toContain(">x<");
   });
@@ -17,6 +18,6 @@ describe("MobileSheet", () => {
 
   test("keeps mobile drawers controlled by the bottom nav state", () => {
     expect(mobileSheetSource).toContain("active === sheetId");
-    expect(mobileSheetSource).toContain("@click=\"emit('close')\"");
+    expect(mobileSheetSource).toContain("@update:open");
   });
 });

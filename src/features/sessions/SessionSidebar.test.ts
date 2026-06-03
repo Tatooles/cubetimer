@@ -8,7 +8,8 @@ describe("SessionSidebar", () => {
   });
 
   test("renders the session select with a visible field treatment", () => {
-    expect(sidebarSource).toContain('data-slot="select-trigger"');
+    expect(sidebarSource).toContain('from "@/components/ui/select"');
+    expect(sidebarSource).toContain("<SelectTrigger");
     expect(sidebarSource).toContain("session-select-trigger");
     expect(sidebarSource).toContain("bg-zinc-900/80");
     expect(sidebarSource).toContain("border-white/15");

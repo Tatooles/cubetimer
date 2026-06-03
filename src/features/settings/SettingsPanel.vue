@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { TimerSettings } from "../sessions/types";
 
 const props = withDefaults(
@@ -32,47 +35,46 @@ function update<Key extends keyof TimerSettings>(key: Key, value: TimerSettings[
   >
     <div class="mb-4 flex items-center justify-between">
       <h2 class="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700">Settings</h2>
-      <button
+      <Button
         v-if="closable"
         type="button"
+        variant="ghost"
+        size="sm"
         class="text-sm text-zinc-500 hover:text-zinc-100"
         @click="emit('close')"
       >
         x
-      </button>
+      </Button>
     </div>
     <div class="space-y-4 text-sm text-zinc-300">
       <div class="flex items-center justify-between gap-3">
         <span>Density</span>
-        <div
+        <ToggleGroup
           aria-label="Density"
+          :model-value="settings.density"
+          type="single"
           class="inline-flex rounded-md border border-white/10 bg-black p-0.5"
+          @update:model-value="
+            (value) => {
+              if (value === 'comfortable' || value === 'compact') {
+                update('density', value);
+              }
+            }
+          "
         >
-          <button
-            type="button"
-            :class="[
-              'rounded px-2.5 py-1 text-[11px] transition',
-              settings.density === 'comfortable'
-                ? 'bg-zinc-800 text-zinc-100'
-                : 'text-zinc-500 hover:text-zinc-200',
-            ]"
-            @click="update('density', 'comfortable')"
+          <ToggleGroupItem
+            value="comfortable"
+            class="h-auto rounded px-2.5 py-1 text-[11px] data-active:bg-zinc-800 data-active:text-zinc-100"
           >
             Comfy
-          </button>
-          <button
-            type="button"
-            :class="[
-              'rounded px-2.5 py-1 text-[11px] transition',
-              settings.density === 'compact'
-                ? 'bg-zinc-800 text-zinc-100'
-                : 'text-zinc-500 hover:text-zinc-200',
-            ]"
-            @click="update('density', 'compact')"
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="compact"
+            class="h-auto rounded px-2.5 py-1 text-[11px] data-active:bg-zinc-800 data-active:text-zinc-100"
           >
             Compact
-          </button>
-        </div>
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       <div
@@ -86,32 +88,14 @@ function update<Key extends keyof TimerSettings>(key: Key, value: TimerSettings[
         class="flex items-center justify-between"
       >
         <span>{{ option.label }}</span>
-        <button
-          type="button"
+        <Switch
           :aria-label="option.aria"
-          :aria-pressed="settings[option.key as keyof TimerSettings] as boolean"
-          :class="[
-            'relative h-[18px] w-8 rounded-full border transition',
-            settings[option.key as keyof TimerSettings]
-              ? 'border-indigo-400 bg-indigo-500/20'
-              : 'border-white/10 bg-black',
-          ]"
-          @click="
-            update(
-              option.key as keyof TimerSettings,
-              !settings[option.key as keyof TimerSettings] as never,
-            )
+          :model-value="settings[option.key as keyof TimerSettings] as boolean"
+          class="data-checked:border-indigo-400 data-checked:bg-indigo-500/20 data-unchecked:border-white/10 data-unchecked:bg-black"
+          @update:model-value="
+            update(option.key as keyof TimerSettings, $event as TimerSettings[keyof TimerSettings])
           "
-        >
-          <span
-            :class="[
-              'absolute top-0.5 h-3 w-3 rounded-full transition',
-              settings[option.key as keyof TimerSettings]
-                ? 'left-[17px] bg-indigo-300'
-                : 'left-0.5 bg-zinc-500',
-            ]"
-          />
-        </button>
+        />
       </div>
     </div>
   </section>

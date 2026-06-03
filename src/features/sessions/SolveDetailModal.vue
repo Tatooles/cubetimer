@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { formatSolveTime } from "../timer/timerFormat";
 import type { Solve } from "./types";
 
-defineProps<{
+const props = defineProps<{
   solve: Solve | null;
 }>();
 
@@ -12,21 +14,26 @@ const emit = defineEmits<{
   comment: [solveId: string, comment: string];
   delete: [solveId: string];
 }>();
+
+function updateOpen(open: boolean) {
+  if (!open && props.solve) {
+    emit("close");
+  }
+}
 </script>
 
 <template>
-  <div
-    v-if="solve"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-    @mousedown="emit('close')"
-  >
-    <section
-      class="w-full max-w-[480px] rounded-xl border border-white/10 bg-zinc-950 p-5 shadow-2xl"
-      @mousedown.stop
+  <Dialog :open="solve != null" @update:open="updateOpen">
+    <DialogContent
+      v-if="solve"
+      class="max-w-[480px] border-white/10 bg-zinc-950 p-5 text-zinc-100 shadow-2xl"
     >
-      <h2 class="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700">
+      <DialogTitle class="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700">
         Solve detail
-      </h2>
+      </DialogTitle>
+      <DialogDescription class="sr-only"
+        >Solve time, scramble, notes, and penalty controls.</DialogDescription
+      >
       <div class="mt-3 font-mono text-5xl font-light text-zinc-100">
         {{ formatSolveTime(solve.ms, solve.penalty) }}
       </div>
@@ -43,40 +50,48 @@ const emit = defineEmits<{
         @blur="emit('comment', solve.id, ($event.target as HTMLTextAreaElement).value)"
       />
       <div class="mt-4 flex flex-wrap gap-2">
-        <button
+        <Button
           type="button"
-          :class="['modal-button', solve.penalty === 'OK' ? 'modal-button-on' : '']"
+          variant="outline"
+          :class="['modal-button h-auto', solve.penalty === 'OK' ? 'modal-button-on' : '']"
           @click="emit('penalty', solve.id, 'OK')"
         >
           OK
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          :class="['modal-button', solve.penalty === '+2' ? 'modal-button-on' : '']"
+          variant="outline"
+          :class="['modal-button h-auto', solve.penalty === '+2' ? 'modal-button-on' : '']"
           @click="emit('penalty', solve.id, solve.penalty === '+2' ? 'OK' : '+2')"
         >
           +2
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          :class="['modal-button', solve.penalty === 'DNF' ? 'modal-button-on' : '']"
+          variant="outline"
+          :class="['modal-button h-auto', solve.penalty === 'DNF' ? 'modal-button-on' : '']"
           @click="emit('penalty', solve.id, solve.penalty === 'DNF' ? 'OK' : 'DNF')"
         >
           DNF
-        </button>
-        <button type="button" class="modal-button text-red-300" @click="emit('delete', solve.id)">
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          class="modal-button h-auto text-red-300"
+          @click="emit('delete', solve.id)"
+        >
           Delete
-        </button>
+        </Button>
       </div>
       <div class="mt-4 flex justify-end">
-        <button
+        <Button
           type="button"
-          class="rounded-md bg-zinc-100 px-4 py-2 text-sm font-semibold text-black"
+          class="rounded-md bg-zinc-100 px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-200"
           @click="emit('close')"
         >
           Close
-        </button>
+        </Button>
       </div>
-    </section>
-  </div>
+    </DialogContent>
+  </Dialog>
 </template>
