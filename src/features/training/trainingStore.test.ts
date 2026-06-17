@@ -6,6 +6,8 @@ import {
   recordCrossAttempt,
   recordAlgorithmTime,
   saveTrainingState,
+  updateAlgorithmSettings,
+  updateCrossSettings,
   sanitizeTrainingState,
 } from "./trainingStore";
 
@@ -32,6 +34,27 @@ function createStorage(initial: Record<string, string> = {}): Storage {
       values.set(key, value);
     },
   } as Storage;
+}
+
+function withThrowingLocalStorage(callback: () => void): void {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    get() {
+      throw new Error("SecurityError");
+    },
+  });
+
+  try {
+    callback();
+  } finally {
+    if (descriptor) {
+      Object.defineProperty(globalThis, "localStorage", descriptor);
+    } else {
+      delete (globalThis as { localStorage?: unknown }).localStorage;
+    }
+  }
 }
 
 describe("training store", () => {
@@ -173,6 +196,74 @@ describe("training store", () => {
     expect(state.cross.history[0].flagged).toBe(true);
   });
 
+  test("updates cross settings immutably", () => {
+    const base = defaultTrainingState();
+    const snapshot = JSON.parse(JSON.stringify(base)) as typeof base;
+
+    const next = updateCrossSettings(base, {
+      color: "red",
+      inspection: true,
+    });
+
+    expect(base).toEqual(snapshot);
+    expect(next.cross.settings).toEqual({
+      color: "red",
+      moveTarget: 8,
+      xcross: false,
+      shortScramble: false,
+      inspection: true,
+      revealMode: "one",
+    });
+    expect(next.cross.settings).not.toBe(base.cross.settings);
+    expect(next.cross).not.toBe(base.cross);
+  });
+
+  test("updates algorithm settings and subsets immutably", () => {
+    const base = defaultTrainingState();
+    const snapshot = JSON.parse(JSON.stringify(base)) as typeof base;
+    const baseWithCustomSubset = {
+      ...base,
+      algorithms: {
+        ...base.algorithms,
+        settings: {
+          ...base.algorithms.settings,
+          subsets: {
+            ...base.algorithms.settings.subsets,
+            OLL: ["existing"],
+          },
+        },
+      },
+    };
+
+    const next = updateAlgorithmSettings(baseWithCustomSubset, {
+      mode: "subset",
+      activeSetId: "COLL",
+      subsets: {
+        PLL: ["T"],
+        COLL: "bad",
+        EXTRA: ["ignored"],
+      } as Record<string, unknown>,
+    });
+
+    expect(base).toEqual(snapshot);
+    expect(baseWithCustomSubset.algorithms.settings.subsets.OLL).toEqual(["existing"]);
+    expect(next.algorithms.settings).toEqual({
+      activeSetId: "COLL",
+      mode: "subset",
+      subsets: {
+        OLL: ["existing"],
+        PLL: ["T"],
+        COLL: [],
+        ZBLL: [],
+        LSLL: [],
+        CLL2: [],
+        PLL4: [],
+      },
+    });
+    expect(next.algorithms.settings).not.toBe(baseWithCustomSubset.algorithms.settings);
+    expect(next.algorithms).not.toBe(baseWithCustomSubset.algorithms);
+  });
+
   test("caps cross attempt history at 100 and keeps previous state immutable", () => {
     const base = {
       ...defaultTrainingState(),
@@ -248,6 +339,18 @@ describe("training store", () => {
     });
 
     expect(loadTrainingState(storage)).toEqual(defaultTrainingState());
+  });
+
+  test("does not throw when ambient localStorage getter throws on load", () => {
+    withThrowingLocalStorage(() => {
+      expect(() => loadTrainingState()).not.toThrow();
+    });
+  });
+
+  test("does not throw when ambient localStorage getter throws on save", () => {
+    withThrowingLocalStorage(() => {
+      expect(() => saveTrainingState(defaultTrainingState())).not.toThrow();
+    });
   });
 
   test("saves and loads the training state through storage", () => {

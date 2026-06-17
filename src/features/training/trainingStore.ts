@@ -159,7 +159,11 @@ function getStorage(storage?: Storage): Storage | undefined {
     return storage;
   }
 
-  return typeof localStorage === "undefined" ? undefined : localStorage;
+  try {
+    return globalThis.localStorage;
+  } catch {
+    return undefined;
+  }
 }
 
 export function defaultTrainingState(): TrainingState {
@@ -225,6 +229,56 @@ export function sanitizeTrainingState(value: unknown): TrainingState {
         ),
       },
       historyByCase: sanitizeHistoryByCase(algorithms.historyByCase),
+    },
+  };
+}
+
+export function updateCrossSettings(
+  state: TrainingState,
+  patch: Partial<CrossSettings>,
+): TrainingState {
+  const fallback = defaultTrainingState();
+
+  return {
+    ...state,
+    cross: {
+      ...state.cross,
+      settings: {
+        ...fallback.cross.settings,
+        ...state.cross.settings,
+        ...sanitizeCrossSettings(patch, {
+          ...fallback.cross.settings,
+          ...state.cross.settings,
+        }),
+      },
+    },
+  };
+}
+
+export function updateAlgorithmSettings(
+  state: TrainingState,
+  patch: Partial<Omit<TrainingState["algorithms"]["settings"], "subsets">> & {
+    subsets?: Record<string, unknown>;
+  },
+): TrainingState {
+  const fallback = defaultTrainingState();
+  const currentSettings = state.algorithms.settings;
+  const nextSubsetsSource = patch.subsets ?? {};
+
+  return {
+    ...state,
+    algorithms: {
+      ...state.algorithms,
+      settings: {
+        activeSetId: isAlgorithmSetId(patch.activeSetId)
+          ? patch.activeSetId
+          : (currentSettings.activeSetId ?? fallback.algorithms.settings.activeSetId),
+        mode: isAlgorithmMode(patch.mode) ? patch.mode : (currentSettings.mode ?? "drill"),
+        subsets: sanitizeAlgorithmSubsets(nextSubsetsSource, {
+          ...fallback.algorithms.settings.subsets,
+          ...currentSettings.subsets,
+        }),
+      },
     },
   };
 }
