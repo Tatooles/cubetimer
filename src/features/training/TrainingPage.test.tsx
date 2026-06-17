@@ -23,6 +23,16 @@ function pageText(): string {
   return document.body.textContent ?? "";
 }
 
+function timerPageGrid(): HTMLElement {
+  const grid = container.querySelector('[data-testid="timer-page-grid"]');
+
+  if (!(grid instanceof HTMLElement)) {
+    throw new Error("TimerPage grid not found");
+  }
+
+  return grid;
+}
+
 function button(name: string): HTMLButtonElement {
   const candidate = Array.from(document.body.querySelectorAll("button")).find(
     (element) => element.textContent?.trim() === name,
@@ -147,6 +157,18 @@ describe("TimerPage training layout", () => {
     expect(pageText()).toContain("Cross trainer");
     expect(pageText()).not.toContain("New session");
     expect(pageText()).not.toContain("Session");
+  });
+
+  test("renders timer and training with section-specific mobile rows", async () => {
+    await render(<TimerPage activeSection="timer" />);
+
+    expect(timerPageGrid().className).toContain("grid-rows-[56px_1fr_64px]");
+    expect(timerPageGrid().className).not.toContain("grid-rows-[56px_1fr] overflow-hidden");
+
+    await render(<TimerPage activeSection="training" />);
+
+    expect(timerPageGrid().className).toContain("grid-rows-[56px_1fr]");
+    expect(timerPageGrid().className).not.toContain("grid-rows-[56px_1fr_64px]");
   });
 });
 

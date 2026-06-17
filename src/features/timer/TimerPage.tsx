@@ -359,6 +359,7 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
   return (
     <div className="min-h-svh bg-[#0a0a0b] text-zinc-100">
       <div
+        data-testid="timer-page-grid"
         className={`grid h-svh ${contentRowsClass} overflow-hidden md:grid-rows-[56px_1fr] ${densityClass}`}
       >
         <header
