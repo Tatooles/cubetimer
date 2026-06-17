@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "../../shared/components/Sheet";
+import { AlgorithmSettings } from "./AlgorithmSettings";
+import { AlgorithmTrainer } from "./AlgorithmTrainer.tsx";
+import { ALGORITHM_SETS } from "./algorithmCatalog";
 import { CrossSettings } from "./CrossSettings";
 import { CrossTrainer } from "./CrossTrainer.tsx";
+import { SubsetEditor } from "./SubsetEditor";
 import {
   loadTrainingState,
+  recordAlgorithmTime,
   recordCrossAttempt,
   saveTrainingState,
+  updateAlgorithmSettings,
   updateCrossSettings,
 } from "./trainingStore";
 import { TrainingHeader } from "./TrainingHeader";
@@ -20,21 +26,6 @@ import type {
 
 let fallbackAttemptIdCounter = 0;
 
-function SettingsPlaceholder({ state }: { state: TrainingState }) {
-  return (
-    <section className="h-full overflow-y-auto border-white/[0.07] px-5 py-4">
-      <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
-        Settings
-      </div>
-      <div className="rounded-md border border-white/[0.07] bg-white/[0.02] p-3 text-sm text-zinc-500">
-        {state.activeTrainer === "cross"
-          ? `${state.cross.settings.color} cross, ${state.cross.settings.moveTarget} move target`
-          : `${state.algorithms.settings.activeSetId} ${state.algorithms.settings.mode}`}
-      </div>
-    </section>
-  );
-}
-
 function createAttemptId(): string {
   if (globalThis.crypto?.randomUUID) {
     return globalThis.crypto.randomUUID();
@@ -47,6 +38,10 @@ function createAttemptId(): string {
 export function TrainingPage() {
   const [state, setState] = useState<TrainingState>(() => loadTrainingState());
   const [activeMobilePanel, setActiveMobilePanel] = useState<TrainingMobilePanel>(null);
+  const [subsetEditorOpen, setSubsetEditorOpen] = useState(false);
+  const activeAlgorithmSet =
+    ALGORITHM_SETS.find((set) => set.id === state.algorithms.settings.activeSetId) ??
+    ALGORITHM_SETS[0]!;
 
   useEffect(() => {
     saveTrainingState(state);
@@ -59,6 +54,30 @@ export function TrainingPage() {
 
   function updateCrossSettingsPatch(patch: Partial<CrossSettingsValue>) {
     setState((current) => updateCrossSettings(current, patch));
+  }
+
+  function updateAlgorithmSettingsPatch(
+    patch: Partial<Pick<TrainingState["algorithms"]["settings"], "activeSetId" | "mode">>,
+  ) {
+    setState((current) => updateAlgorithmSettings(current, patch));
+  }
+
+  function saveAlgorithmSubset(selectedIds: string[]) {
+    setSubsetEditorOpen(false);
+    setState((current) =>
+      updateAlgorithmSettings(current, {
+        subsets: {
+          ...current.algorithms.settings.subsets,
+          [activeAlgorithmSet.id]: selectedIds,
+        },
+      }),
+    );
+  }
+
+  function recordAlgorithmCaseTime(caseId: string, ms: number) {
+    setState((current) =>
+      recordAlgorithmTime(current, current.algorithms.settings.activeSetId, caseId, ms),
+    );
   }
 
   function recordRatedCrossAttempt(attempt: {
@@ -87,7 +106,11 @@ export function TrainingPage() {
     return state.activeTrainer === "cross" ? (
       <CrossSettings settings={state.cross.settings} onChange={updateCrossSettingsPatch} />
     ) : (
-      <SettingsPlaceholder state={state} />
+      <AlgorithmSettings
+        settings={state.algorithms.settings}
+        onChange={updateAlgorithmSettingsPatch}
+        onEditSubset={() => setSubsetEditorOpen(true)}
+      />
     );
   }
 
@@ -107,12 +130,11 @@ export function TrainingPage() {
         {state.activeTrainer === "cross" ? (
           <CrossTrainer settings={state.cross.settings} onRate={recordRatedCrossAttempt} />
         ) : (
-          <div className="flex h-full items-center justify-center px-4">
-            <div className="text-center">
-              <p className="text-sm font-medium text-zinc-200">Algorithm trainer</p>
-              <p className="mt-2 text-xs text-zinc-600">Trainer workspace placeholder</p>
-            </div>
-          </div>
+          <AlgorithmTrainer
+            settings={state.algorithms.settings}
+            historyByCase={state.algorithms.historyByCase}
+            onRecordTime={recordAlgorithmCaseTime}
+          />
         )}
       </main>
 
@@ -163,6 +185,14 @@ export function TrainingPage() {
           {renderSettingsRail()}
         </SheetContent>
       </Sheet>
+
+      <SubsetEditor
+        open={subsetEditorOpen}
+        set={activeAlgorithmSet}
+        selectedIds={state.algorithms.settings.subsets[activeAlgorithmSet.id] ?? []}
+        onCancel={() => setSubsetEditorOpen(false)}
+        onSave={saveAlgorithmSubset}
+      />
     </section>
   );
 }

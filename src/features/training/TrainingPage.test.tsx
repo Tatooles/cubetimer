@@ -7,6 +7,9 @@ import { TimerPage } from "../timer/TimerPage";
 import { defaultTrainingState, TRAINING_STORAGE_KEY } from "./trainingStore";
 import { TrainingPage } from "./TrainingPage";
 import { TrainingSidebar } from "./TrainingSidebar";
+import algorithmSettingsSource from "./AlgorithmSettings.tsx?raw";
+import algorithmTrainerSource from "./AlgorithmTrainer.tsx?raw";
+import subsetEditorSource from "./SubsetEditor.tsx?raw";
 import trainingPageSource from "./TrainingPage.tsx?raw";
 import crossSettingsSource from "./CrossSettings.tsx?raw";
 import crossTrainerSource from "./CrossTrainer.tsx?raw";
@@ -94,7 +97,24 @@ describe("TrainingPage shell composition", () => {
   test("renders placeholder trainer content until concrete trainers land", () => {
     expect(trainingPageSource).toContain("<CrossTrainer");
     expect(trainingPageSource).toContain("<CrossSettings");
-    expect(trainingPageSource).toContain("Algorithm trainer");
+    expect(trainingPageSource).toContain("<AlgorithmTrainer");
+    expect(trainingPageSource).toContain("<AlgorithmSettings");
+    expect(trainingPageSource).toContain("<SubsetEditor");
+  });
+
+  test("algorithm trainer source exposes timer and case controls", () => {
+    expect(algorithmTrainerSource).toContain("Hold space");
+    expect(algorithmTrainerSource).toContain("Next case");
+  });
+
+  test("algorithm settings source exposes drill and subset controls", () => {
+    expect(algorithmSettingsSource).toContain("Drill");
+    expect(algorithmSettingsSource).toContain("Subset");
+  });
+
+  test("subset editor source exposes bulk selection controls", () => {
+    expect(subsetEditorSource).toContain("Select all");
+    expect(subsetEditorSource).toContain("Select none");
   });
 
   test("cross trainer source exposes reveal, rating, and inspection controls", () => {
@@ -125,6 +145,44 @@ describe("TrainingPage interactions", () => {
     await render(<TrainingPage />);
 
     expect(pageText()).toContain("Algorithm trainer");
+  });
+
+  test("renders algorithm case controls and advances cases", async () => {
+    await render(<TrainingPage />);
+
+    await click(button("Algorithms"));
+
+    expect(pageText()).toContain("PLL");
+    expect(pageText()).toContain("T Perm");
+    expect(pageText()).toContain("Hold space");
+    expect(pageText()).toContain("Next case");
+
+    await click(button("Next case"));
+
+    expect(pageText()).toContain("Jb Perm");
+  });
+
+  test("opens algorithm settings and saves a subset selection", async () => {
+    await render(<TrainingPage />);
+
+    await click(button("Algorithms"));
+    await click(button("Settings"));
+
+    expect(pageText()).toContain("Training settings");
+    expect(pageText()).toContain("Drill");
+    expect(pageText()).toContain("Subset");
+
+    await click(button("Subset"));
+    await click(button("Edit subset"));
+
+    expect(pageText()).toContain("Select all");
+    expect(pageText()).toContain("Select none");
+
+    await click(button("Select none"));
+    await click(button("Done"));
+
+    expect(pageText()).toContain("Choose at least one case");
+    expect(localStorage.getItem(TRAINING_STORAGE_KEY)).toContain('"PLL":[]');
   });
 
   test("opens and toggles history and settings mobile panels", async () => {
