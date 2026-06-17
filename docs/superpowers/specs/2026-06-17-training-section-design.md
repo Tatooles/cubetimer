@@ -56,6 +56,8 @@ The Timer section should continue rendering the current application shell with t
 
 The `Profile soon` placeholder from the prototype is not part of this implementation. The top-level navigation should expose only Timer and Training for this phase.
 
+Do not add a routing library for this phase. The app should remain a single-page application with local state controlling the active top-level section. Direct URLs such as `/training` or `/training?mode=algorithms` are out of scope for now. The implementation should still keep the page boundaries clear, for example through `TimerPage` and `TrainingPage`, so URL routing can be added later without rewriting the feature.
+
 Keyboard handlers should be section-aware:
 
 - Timer shortcuts only operate while the Timer section is active.
