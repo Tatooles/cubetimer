@@ -259,6 +259,9 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
     function onKeyUp(event: KeyboardEvent) {
       if (event.code === "Space") {
         event.preventDefault();
+        if (!timerSectionActive) {
+          return;
+        }
         releaseTimer();
       }
     }

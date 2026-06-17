@@ -70,6 +70,13 @@ describe("TimerPage header layout", () => {
     expect(timerPageSource).toContain("onSectionChange?.(section)");
     expect(timerPageSource).toContain('activeSection === "training" ? (');
   });
+
+  test("guards space keyup timer release when training is active", () => {
+    expect(timerPageSource).toContain("if (!timerSectionActive) {");
+    expect(timerPageSource.indexOf("if (!timerSectionActive) {")).toBeLessThan(
+      timerPageSource.indexOf("releaseTimer();"),
+    );
+  });
 });
 
 describe("App mobile panels", () => {
