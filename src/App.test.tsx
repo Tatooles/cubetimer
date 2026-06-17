@@ -35,6 +35,34 @@ describe("App top-level sections", () => {
     expect(appSource).toContain(">Training<");
     expect(appSource).not.toContain("Profile");
   });
+
+  test("passes section state into TimerPage instead of stacking a second full-screen shell", () => {
+    expect(appSource).toContain(
+      "<TimerPage activeSection={activeSection} onSectionChange={setActiveSection} />",
+    );
+    expect(appSource).not.toContain("embedded");
+  });
+});
+
+describe("TimerPage header layout", () => {
+  test("puts both mobile and desktop event selectors in the top bar", () => {
+    expect(timerPageSource).toContain('mode="select"');
+    expect(timerPageSource).toContain('mode="tabs"');
+    expect(timerPageSource).not.toContain("onEventChange={onEventChange}");
+  });
+
+  test("fills the center grid column with the desktop selector", () => {
+    expect(timerPageSource).toContain("headerDensityClass");
+    expect(timerPageSource).toContain("md:col-start-2 md:row-start-1");
+    expect(timerPageSource).toContain("w-full");
+    expect(timerPageSource).not.toContain("max-w-3xl");
+  });
+
+  test("centers the mobile event selector in the top bar", () => {
+    expect(timerPageSource).toContain("grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]");
+    expect(timerPageSource).toContain("justify-self-center md:hidden");
+    expect(timerPageSource).toContain("justify-self-end");
+  });
 });
 
 describe("App mobile panels", () => {

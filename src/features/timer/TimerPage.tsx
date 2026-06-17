@@ -29,6 +29,13 @@ import { copyTextToClipboard } from "../../shared/clipboard/copyTextToClipboard"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "../../shared/components/Sheet";
 import { readJson, writeJson } from "../../shared/storage/localStorageStore";
 
+type AppSection = "timer" | "training";
+
+type TimerPageProps = {
+  activeSection?: AppSection;
+  onSectionChange?: (section: AppSection) => void;
+};
+
 function updateSolveInState(state: AppState, solveId: string, patch: Partial<Solve>): AppState {
   return {
     ...state,
@@ -70,7 +77,7 @@ function initialAppState(): AppState {
   return sanitizeState(readJson(APP_STORAGE_KEY, defaultAppState()));
 }
 
-export function TimerPage({ embedded = false }: { embedded?: boolean }) {
+export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPageProps = {}) {
   const [state, setState] = useState<AppState>(initialAppState);
   const [scrambleError, setScrambleError] = useState<string | null>(null);
   const [scrambleLoading, setScrambleLoading] = useState(false);
@@ -318,23 +325,49 @@ export function TimerPage({ embedded = false }: { embedded?: boolean }) {
   const headerDensityClass = densityClass;
 
   return (
-    <div className={embedded ? undefined : "min-h-svh bg-[#0a0a0b] text-zinc-100"}>
+    <div className="min-h-svh bg-[#0a0a0b] text-zinc-100">
       <div
-        className={`grid ${embedded ? "h-full" : "h-svh"} grid-rows-[56px_1fr_64px] overflow-hidden md:grid-rows-[56px_1fr] ${densityClass}`}
+        className={`grid h-svh grid-rows-[56px_1fr_64px] overflow-hidden md:grid-rows-[56px_1fr] ${densityClass}`}
       >
         <header
           className={`col-span-full grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-white/[0.07] px-4 md:grid-cols-subgrid md:gap-0 md:px-0 ${headerDensityClass}`}
         >
-          <div className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden font-mono text-sm font-semibold md:col-start-1 md:row-start-1 md:px-6">
-            <span className="grid h-4.5 w-4.5 grid-cols-2 gap-px rounded bg-zinc-100 p-px">
-              <span className="rounded-[1px] bg-indigo-400" />
-              <span className="rounded-[1px] bg-black" />
-              <span className="rounded-[1px] bg-black" />
-              <span className="rounded-[1px] bg-black" />
-            </span>
-            <span>
-              cube<span className="text-zinc-600">timer</span>
-            </span>
+          <div className="flex min-w-0 shrink-0 items-center gap-4 overflow-hidden md:col-start-1 md:row-start-1 md:px-6">
+            <div className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden font-mono text-sm font-semibold">
+              <span className="grid h-4.5 w-4.5 grid-cols-2 gap-px rounded bg-zinc-100 p-px">
+                <span className="rounded-[1px] bg-indigo-400" />
+                <span className="rounded-[1px] bg-black" />
+                <span className="rounded-[1px] bg-black" />
+                <span className="rounded-[1px] bg-black" />
+              </span>
+              <span>
+                cube<span className="text-zinc-600">timer</span>
+              </span>
+            </div>
+            {onSectionChange ? (
+              <nav className="flex h-full min-w-0 items-stretch">
+                <button
+                  type="button"
+                  onClick={() => onSectionChange("timer")}
+                  className={`relative px-2 text-sm font-medium md:px-4 ${activeSection === "timer" ? "text-indigo-200" : "text-zinc-500 hover:text-zinc-200"}`}
+                >
+                  Timer
+                  {activeSection === "timer" ? (
+                    <span className="absolute inset-x-1 bottom-0 h-0.5 bg-indigo-300 md:inset-x-3" />
+                  ) : null}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSectionChange("training")}
+                  className={`relative px-2 text-sm font-medium md:px-4 ${activeSection === "training" ? "text-indigo-200" : "text-zinc-500 hover:text-zinc-200"}`}
+                >
+                  Training
+                  {activeSection === "training" ? (
+                    <span className="absolute inset-x-1 bottom-0 h-0.5 bg-indigo-300 md:inset-x-3" />
+                  ) : null}
+                </button>
+              </nav>
+            ) : null}
           </div>
           <div className="min-w-0 justify-self-center md:hidden">
             <EventSelector
