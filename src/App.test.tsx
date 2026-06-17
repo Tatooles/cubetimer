@@ -66,6 +66,7 @@ describe("TimerPage header layout", () => {
   });
 
   test("guards training tab switches while the timer is locked", () => {
+    expect(timerPageSource).toContain('const timerLocked = timerStage !== "idle";');
     expect(timerPageSource).toContain('if (timerLocked && section === "training")');
     expect(timerPageSource).toContain("onSectionChange?.(section)");
     expect(timerPageSource).toContain('activeSection === "training" ? (');
@@ -73,6 +74,9 @@ describe("TimerPage header layout", () => {
 
   test("guards space keyup timer release when training is active", () => {
     expect(timerPageSource).toContain("if (!timerSectionActive) {");
+    expect(timerPageSource.indexOf("if (!timerSectionActive) {")).toBeLessThan(
+      timerPageSource.indexOf("event.preventDefault();"),
+    );
     expect(timerPageSource.indexOf("if (!timerSectionActive) {")).toBeLessThan(
       timerPageSource.indexOf("releaseTimer();"),
     );

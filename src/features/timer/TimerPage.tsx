@@ -150,7 +150,7 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
   const timerSectionActive = activeSection === "timer";
   const timerInputEnabled =
     timerSectionActive && state.currentScramble.trim().length > 0 && !scrambleLoading;
-  const timerLocked = timerStage === "running";
+  const timerLocked = timerStage !== "idle";
 
   const handleSectionChange = useCallback(
     (section: AppSection) => {
@@ -258,10 +258,10 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
 
     function onKeyUp(event: KeyboardEvent) {
       if (event.code === "Space") {
-        event.preventDefault();
         if (!timerSectionActive) {
           return;
         }
+        event.preventDefault();
         releaseTimer();
       }
     }
