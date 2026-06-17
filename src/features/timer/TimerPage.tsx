@@ -150,17 +150,18 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
   const timerSectionActive = activeSection === "timer";
   const timerInputEnabled =
     timerSectionActive && state.currentScramble.trim().length > 0 && !scrambleLoading;
-  const timerLocked = timerStage !== "idle";
+  const timerLocked = timerStage === "running";
+  const sectionSwitchLocked = timerStage !== "idle";
 
   const handleSectionChange = useCallback(
     (section: AppSection) => {
-      if (timerLocked && section === "training") {
+      if (sectionSwitchLocked && section === "training") {
         return;
       }
 
       onSectionChange?.(section);
     },
-    [onSectionChange, timerLocked],
+    [onSectionChange, sectionSwitchLocked],
   );
 
   const setEvent = useCallback(
