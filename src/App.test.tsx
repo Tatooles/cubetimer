@@ -37,6 +37,18 @@ describe("App top-level sections", () => {
     expect(appSource).not.toContain("showTraining");
     expect(appSource).not.toContain("Profile");
   });
+
+  test("keeps TimerPage responsible for section-scoped timer and training handlers", () => {
+    expect(appSource).toContain("activeSection");
+    expect(timerPageSource).toContain("import { TrainingPage }");
+    expect(timerPageSource).toContain("<TrainingPage");
+    expect(timerPageSource).toContain('const timerSectionActive = activeSection === "timer";');
+    expect(timerPageSource).toContain("if (!timerSectionActive) {");
+    expect(timerPageSource).toContain("timerInputEnabled");
+    expect(timerPageSource.indexOf("if (!timerSectionActive) {")).toBeLessThan(
+      timerPageSource.indexOf("pressTimer();"),
+    );
+  });
 });
 
 describe("TimerPage header layout", () => {

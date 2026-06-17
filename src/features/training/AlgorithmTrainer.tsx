@@ -179,15 +179,17 @@ export function AlgorithmTrainer({
 
         <div
           data-testid="algorithm-current-case"
-          className="rounded-md border border-white/[0.07] bg-white/[0.02] p-4"
+          className="min-w-0 overflow-hidden rounded-md border border-white/[0.07] bg-white/[0.02] p-4"
         >
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
                 {currentCase.group}
               </div>
-              <h2 className="mt-1 text-xl font-semibold text-zinc-100">{currentCase.name}</h2>
-              <p className="mt-1 text-sm leading-relaxed text-zinc-500">
+              <h2 className="mt-1 break-words text-xl font-semibold text-zinc-100">
+                {currentCase.name}
+              </h2>
+              <p className="mt-1 break-words text-sm leading-relaxed text-zinc-500">
                 {currentCase.description}
               </p>
             </div>
@@ -200,13 +202,13 @@ export function AlgorithmTrainer({
             </button>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-            <div className="space-y-3">
+          <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="min-w-0 space-y-3">
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
                   Algorithm
                 </div>
-                <p className="mt-2 font-mono text-lg leading-relaxed text-zinc-100">
+                <p className="mt-2 break-words font-mono text-lg leading-relaxed text-zinc-100">
                   {currentCase.algorithm}
                 </p>
               </div>
@@ -214,7 +216,9 @@ export function AlgorithmTrainer({
                 <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
                   Setup
                 </div>
-                <p className="mt-2 font-mono text-sm leading-relaxed text-zinc-300">{setup}</p>
+                <p className="mt-2 break-words font-mono text-sm leading-relaxed text-zinc-300">
+                  {setup}
+                </p>
               </div>
             </div>
             <ScrambleDraw eventId={eventId} scramble={setup} />

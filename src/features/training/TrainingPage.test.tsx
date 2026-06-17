@@ -62,6 +62,11 @@ function testId(id: string): HTMLElement {
   return candidate;
 }
 
+function sheetContent(): HTMLElement | null {
+  const candidate = document.body.querySelector('[data-slot="sheet-content"]');
+  return candidate instanceof HTMLElement ? candidate : null;
+}
+
 async function render(element: ReactNode) {
   await act(async () => {
     root.render(element);
@@ -135,6 +140,19 @@ describe("TrainingPage shell composition", () => {
     expect(crossTrainerSource).toContain("copyTextToClipboard");
   });
 
+  test("cross trainer source scopes keyboard shortcuts away from controls", () => {
+    expect(crossTrainerSource).toContain('window.addEventListener("keydown"');
+    expect(crossTrainerSource).toContain('window.removeEventListener("keydown"');
+    expect(crossTrainerSource).toContain("shouldIgnoreGlobalShortcut");
+    expect(crossTrainerSource).toContain('[data-global-shortcuts="ignore"]');
+    expect(crossTrainerSource).toContain("event.repeat");
+    expect(crossTrainerSource).toContain("revealNext()");
+    expect(crossTrainerSource).toContain("advance()");
+    expect(crossTrainerSource).toContain("setFlagged((current) => !current)");
+    expect(crossTrainerSource).toContain("revealAll()");
+    expect(crossTrainerSource).toContain("setInspecting((current) => !current)");
+  });
+
   test("cross settings source exposes color, target, and xcross controls", () => {
     expect(crossSettingsSource).toContain("Cross color");
     expect(crossSettingsSource).toContain("Move target");
@@ -182,11 +200,13 @@ describe("TrainingPage interactions", () => {
     await click(button("Algorithms"));
     await click(button("Settings"));
 
-    const select = document.body.querySelector("select");
+    const select = sheetContent()?.querySelector("select");
     if (!(select instanceof HTMLSelectElement)) {
       throw new Error("Algorithm set select not found");
     }
-    select.focus();
+    await act(async () => {
+      select.focus();
+    });
 
     const keydown = new KeyboardEvent("keydown", {
       bubbles: true,
@@ -271,7 +291,7 @@ describe("TrainingPage interactions", () => {
     await click(button("Settings"));
     await click(button("Edit subset"));
 
-    const select = document.body.querySelector("select");
+    const select = sheetContent()?.querySelector("select");
     if (!(select instanceof HTMLSelectElement)) {
       throw new Error("Algorithm set select not found");
     }
@@ -363,9 +383,114 @@ describe("TrainingPage interactions", () => {
 
     await click(button("Settings"));
 
-    expect(pageText()).toContain("Training settings");
-    expect(pageText()).toContain("Cross color");
-    expect(pageText()).toContain("Move target");
+    expect(sheetContent()?.textContent).toContain("Training settings");
+    expect(sheetContent()?.textContent).toContain("Cross color");
+    expect(sheetContent()?.textContent).toContain("Move target");
+  });
+
+  test("escape closes training mobile panels and subset editor", async () => {
+    await render(<TrainingPage />);
+
+    await click(button("Settings"));
+    expect(sheetContent()?.textContent).toContain("Training settings");
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
+    });
+
+    expect(sheetContent()).toBeNull();
+
+    await click(button("Algorithms"));
+    await click(button("Settings"));
+    await click(button("Edit subset"));
+    expect(pageText()).toContain("Select all");
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
+    });
+
+    expect(pageText()).not.toContain("Select all");
+  });
+
+  test("escape from training form controls does not close panels", async () => {
+    await render(<TrainingPage />);
+
+    await click(button("Algorithms"));
+    await click(button("Settings"));
+
+    const select = sheetContent()?.querySelector("select");
+    if (!(select instanceof HTMLSelectElement)) {
+      throw new Error("Algorithm set select not found");
+    }
+    await act(async () => {
+      select.focus();
+    });
+
+    await act(async () => {
+      select.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
+    });
+
+    expect(sheetContent()?.textContent).toContain("Training settings");
+  });
+
+  test("cross keyboard shortcuts reveal, advance, flag, inspect, and ignore controls", async () => {
+    await render(<TrainingPage />);
+
+    expect(pageText()).toContain("Reveal the solution when ready.");
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, cancelable: true, code: "Space" }),
+      );
+    });
+
+    expect(pageText()).not.toContain("Reveal the solution when ready.");
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "f" }));
+    });
+
+    expect(pageText()).toContain("Flagged");
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "i" }));
+    });
+
+    expect(pageText()).toContain("15s inspection active");
+
+    const beforeNext = testId("cross-scramble").textContent;
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "n" }));
+    });
+
+    expect(testId("cross-scramble").textContent).not.toBe(beforeNext);
+    expect(pageText()).toContain("Reveal the solution when ready.");
+    expect(pageText()).not.toContain("Flagged");
+    expect(pageText()).not.toContain("15s inspection active");
+
+    const nextButton = button("Next");
+    nextButton.focus();
+    const beforeIgnoredNext = testId("cross-scramble").textContent;
+
+    await act(async () => {
+      nextButton.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "n" }));
+    });
+
+    expect(testId("cross-scramble").textContent).toBe(beforeIgnoredNext);
+  });
+
+  test("cross reveal-all shortcut exposes every visible move", async () => {
+    await render(<TrainingPage />);
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "r" }));
+    });
+
+    expect(pageText()).not.toContain("Reveal the solution when ready.");
+    expect(
+      document.body.querySelectorAll('[data-testid="cross-solution-move"]').length,
+    ).toBeGreaterThan(1);
   });
 
   test("rating a cross attempt records it in sidebar history", async () => {
@@ -472,6 +597,25 @@ describe("TimerPage training layout", () => {
 
     expect(timerPageGrid().className).toContain("grid-rows-[56px_1fr]");
     expect(timerPageGrid().className).not.toContain("grid-rows-[56px_1fr_64px]");
+  });
+});
+
+describe("Training responsive hardening", () => {
+  test("guards TrainingPage shell, main area, and mobile sheets against overflow", () => {
+    expect(trainingPageSource).toContain("min-w-0");
+    expect(trainingPageSource).toContain("overflow-hidden");
+    expect(trainingPageSource).toContain("overflow-y-auto");
+    expect(trainingPageSource).toContain("TrainingMobileNav");
+    expect(trainingPageSource).toContain("max-h");
+    expect(trainingPageSource).toContain("w-[min(320px,88vw)]");
+  });
+
+  test("guards trainer text and action rows for narrow screens", () => {
+    expect(crossTrainerSource).toContain("break-words");
+    expect(crossTrainerSource).toContain("flex-wrap");
+    expect(crossTrainerSource).toContain('data-testid="cross-scramble"');
+    expect(algorithmTrainerSource).toContain("break-words");
+    expect(algorithmTrainerSource).toContain("min-w-0");
   });
 });
 

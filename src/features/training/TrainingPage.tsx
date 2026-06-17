@@ -36,6 +36,22 @@ function createAttemptId(): string {
   return `cross-${Date.now().toString(36)}-${fallbackAttemptIdCounter.toString(36)}`;
 }
 
+function shouldIgnoreGlobalShortcut(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (target.closest('[data-global-shortcuts="ignore"]')) {
+    return true;
+  }
+
+  if (target.isContentEditable) {
+    return true;
+  }
+
+  return ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
+}
+
 export function TrainingPage() {
   const [state, setState] = useState<TrainingState>(() => loadTrainingState());
   const [activeMobilePanel, setActiveMobilePanel] = useState<TrainingMobilePanel>(null);
@@ -49,6 +65,23 @@ export function TrainingPage() {
   useEffect(() => {
     saveTrainingState(state);
   }, [state]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape" || shouldIgnoreGlobalShortcut(event.target)) {
+        return;
+      }
+
+      if (activeMobilePanel !== null || editingSubsetSetId !== null) {
+        event.preventDefault();
+        setActiveMobilePanel(null);
+        setEditingSubsetSetId(null);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeMobilePanel, editingSubsetSetId]);
 
   function setActiveTrainer(activeTrainer: TrainingMode) {
     setActiveMobilePanel(null);
@@ -90,6 +123,12 @@ export function TrainingPage() {
     setEditingSubsetSetId(state.algorithms.settings.activeSetId);
   }
 
+  function preventSheetControlEscape(event: Event) {
+    if (shouldIgnoreGlobalShortcut(event.target)) {
+      event.preventDefault();
+    }
+  }
+
   function recordRatedCrossAttempt(attempt: {
     scramble: string;
     solution: string[];
@@ -125,8 +164,8 @@ export function TrainingPage() {
   }
 
   return (
-    <section className="grid h-full min-h-0 grid-rows-[56px_1fr_64px] bg-[#0a0a0b] text-zinc-100 md:grid-cols-[264px_1fr_296px] md:grid-rows-[56px_1fr]">
-      <div className="col-span-full">
+    <section className="grid h-full min-h-0 min-w-0 grid-rows-[56px_1fr_64px] overflow-hidden bg-[#0a0a0b] text-zinc-100 md:grid-cols-[264px_1fr_296px] md:grid-rows-[56px_1fr]">
+      <div className="col-span-full min-w-0 overflow-hidden">
         <TrainingHeader activeTrainer={state.activeTrainer} onTrainerChange={setActiveTrainer} />
       </div>
 
@@ -136,7 +175,7 @@ export function TrainingPage() {
         className="hidden md:col-start-1 md:row-start-2 md:flex md:border-r"
       />
 
-      <main className="min-h-0 min-w-0 md:col-start-2 md:row-start-2">
+      <main className="min-h-0 min-w-0 overflow-hidden md:col-start-2 md:row-start-2">
         {state.activeTrainer === "cross" ? (
           <CrossTrainer settings={state.cross.settings} onRate={recordRatedCrossAttempt} />
         ) : (
@@ -149,7 +188,7 @@ export function TrainingPage() {
         )}
       </main>
 
-      <aside className="hidden overflow-y-auto border-l border-white/[0.07] md:col-start-3 md:row-start-2 md:block">
+      <aside className="hidden min-h-0 min-w-0 overflow-y-auto border-l border-white/[0.07] md:col-start-3 md:row-start-2 md:block">
         {renderSettingsRail()}
       </aside>
 
@@ -160,19 +199,27 @@ export function TrainingPage() {
         open={activeMobilePanel === "history"}
         onOpenChange={(open) => {
           if (!open) {
+            if (shouldIgnoreGlobalShortcut(document.activeElement)) {
+              return;
+            }
             setActiveMobilePanel(null);
           }
         }}
       >
         <SheetContent
           side="left"
-          className="w-[min(320px,88vw)] overflow-hidden border-white/[0.07] bg-[#0a0a0b] p-0"
+          onEscapeKeyDown={preventSheetControlEscape}
+          className="max-h-dvh w-[min(320px,88vw)] overflow-hidden border-white/[0.07] bg-[#0a0a0b] p-0"
         >
           <SheetTitle className="sr-only">Training history</SheetTitle>
           <SheetDescription className="sr-only">
             Training history for the active trainer.
           </SheetDescription>
-          <TrainingSidebar state={state} activeTrainer={state.activeTrainer} className="h-full" />
+          <TrainingSidebar
+            state={state}
+            activeTrainer={state.activeTrainer}
+            className="h-full min-w-0 overflow-y-auto"
+          />
         </SheetContent>
       </Sheet>
 
@@ -181,13 +228,17 @@ export function TrainingPage() {
         open={activeMobilePanel === "settings"}
         onOpenChange={(open) => {
           if (!open) {
+            if (shouldIgnoreGlobalShortcut(document.activeElement)) {
+              return;
+            }
             setActiveMobilePanel(null);
           }
         }}
       >
         <SheetContent
           side="right"
-          className="w-[min(320px,88vw)] overflow-hidden border-white/[0.07] bg-[#0a0a0b] p-0"
+          onEscapeKeyDown={preventSheetControlEscape}
+          className="max-h-dvh w-[min(320px,88vw)] overflow-y-auto border-white/[0.07] bg-[#0a0a0b] p-0"
         >
           <SheetTitle className="sr-only">Training settings</SheetTitle>
           <SheetDescription className="sr-only">

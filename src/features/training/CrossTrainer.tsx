@@ -24,7 +24,24 @@ function visibleMoves(solution: CrossSolution): string[] {
   return solution.xcross?.moves ?? solution.cross.moves;
 }
 
+function shouldIgnoreGlobalShortcut(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (target.closest('[data-global-shortcuts="ignore"]')) {
+    return true;
+  }
+
+  if (target.isContentEditable) {
+    return true;
+  }
+
+  return ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
+}
+
 export function CrossTrainer({ settings, onRate }: CrossTrainerProps) {
+  const trainerRef = useRef<HTMLElement | null>(null);
   const [scramble, setScramble] = useState(() => newScramble(settings.shortScramble));
   const [flagged, setFlagged] = useState(false);
   const [inspecting, setInspecting] = useState(false);
@@ -94,9 +111,52 @@ export function CrossTrainer({ settings, onRate }: CrossTrainerProps) {
     void copyTextToClipboard(scramble);
   }
 
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (
+        shouldIgnoreGlobalShortcut(event.target) ||
+        (document.activeElement &&
+          document.activeElement !== document.body &&
+          !trainerRef.current?.contains(document.activeElement))
+      ) {
+        return;
+      }
+
+      if (event.code === "Space") {
+        if (event.repeat) {
+          return;
+        }
+        event.preventDefault();
+        revealNext();
+        return;
+      }
+
+      if (event.repeat) {
+        return;
+      }
+
+      if (event.key === "n" || event.key === "N") {
+        event.preventDefault();
+        advance();
+      } else if (event.key === "f" || event.key === "F") {
+        event.preventDefault();
+        setFlagged((current) => !current);
+      } else if (event.key === "r" || event.key === "R") {
+        event.preventDefault();
+        revealAll();
+      } else if (event.key === "i" || event.key === "I") {
+        event.preventDefault();
+        setInspecting((current) => !current);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
   return (
-    <section className="h-full min-h-0 overflow-y-auto px-4 py-4 md:px-6">
-      <div className="mx-auto flex max-w-4xl flex-col gap-4">
+    <section ref={trainerRef} className="h-full min-h-0 min-w-0 overflow-y-auto px-4 py-4 md:px-6">
+      <div className="mx-auto flex max-w-4xl min-w-0 flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-white/[0.07] bg-white/[0.03] px-3 py-1 text-xs font-medium text-zinc-200">
             Cross trainer
@@ -114,7 +174,7 @@ export function CrossTrainer({ settings, onRate }: CrossTrainerProps) {
           ) : null}
         </div>
 
-        <div className="rounded-md border border-white/[0.07] bg-white/[0.02] p-4">
+        <div className="min-w-0 overflow-hidden rounded-md border border-white/[0.07] bg-white/[0.02] p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
@@ -160,13 +220,18 @@ export function CrossTrainer({ settings, onRate }: CrossTrainerProps) {
             </div>
           </div>
 
-          <p className="font-mono text-lg leading-relaxed text-zinc-100 md:text-xl">{scramble}</p>
+          <p
+            data-testid="cross-scramble"
+            className="break-words font-mono text-lg leading-relaxed text-zinc-100 md:text-xl"
+          >
+            {scramble}
+          </p>
           <div className="mt-4">
             <ScrambleDraw eventId="333" scramble={scramble} />
           </div>
         </div>
 
-        <div className="rounded-md border border-white/[0.07] bg-white/[0.02] p-4">
+        <div className="min-w-0 overflow-hidden rounded-md border border-white/[0.07] bg-white/[0.02] p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
@@ -176,7 +241,7 @@ export function CrossTrainer({ settings, onRate }: CrossTrainerProps) {
                 {solution.xcross ? "XCross" : "Cross"} · {moves.length} moves
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={revealNext}
@@ -199,7 +264,8 @@ export function CrossTrainer({ settings, onRate }: CrossTrainerProps) {
               shownMoves.map((move, index) => (
                 <span
                   key={`${move}-${index}`}
-                  className="rounded-md border border-white/[0.07] bg-black px-3 py-2 font-mono text-sm text-zinc-100"
+                  data-testid="cross-solution-move"
+                  className="break-words rounded-md border border-white/[0.07] bg-black px-3 py-2 font-mono text-sm text-zinc-100"
                 >
                   {move}
                 </span>
@@ -210,9 +276,9 @@ export function CrossTrainer({ settings, onRate }: CrossTrainerProps) {
           </div>
         </div>
 
-        <div className="rounded-md border border-white/[0.07] bg-white/[0.02] p-4">
+        <div className="min-w-0 overflow-hidden rounded-md border border-white/[0.07] bg-white/[0.02] p-4">
           <div className="mb-3 text-sm font-medium text-zinc-200">How did that go?</div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {(["good", "okay", "missed"] as CrossRating[]).map((rating) => (
               <button
                 key={rating}
