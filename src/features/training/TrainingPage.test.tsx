@@ -136,6 +136,9 @@ describe("TimerPage training layout", () => {
     expect(timerPageSource).toContain('activeSection === "timer" ? (');
     expect(timerPageSource).toContain("<SessionSidebar");
     expect(timerPageSource).toContain('activeSection === "training" ? "md:col-span-3"');
+    expect(timerPageSource).toContain(
+      'activeSection === "training" ? "grid-rows-[56px_1fr]" : "grid-rows-[56px_1fr_64px]"',
+    );
   });
 
   test("does not expose timer session controls while training is active", async () => {

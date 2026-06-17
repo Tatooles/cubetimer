@@ -353,11 +353,13 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
       ? "md:grid-cols-[264px_1fr_296px]"
       : "md:grid-cols-[296px_1fr_332px]";
   const headerDensityClass = densityClass;
+  const contentRowsClass =
+    activeSection === "training" ? "grid-rows-[56px_1fr]" : "grid-rows-[56px_1fr_64px]";
 
   return (
     <div className="min-h-svh bg-[#0a0a0b] text-zinc-100">
       <div
-        className={`grid h-svh grid-rows-[56px_1fr_64px] overflow-hidden md:grid-rows-[56px_1fr] ${densityClass}`}
+        className={`grid h-svh ${contentRowsClass} overflow-hidden md:grid-rows-[56px_1fr] ${densityClass}`}
       >
         <header
           className={`col-span-full grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-white/[0.07] px-4 md:grid-cols-subgrid md:gap-0 md:px-0 ${headerDensityClass}`}
