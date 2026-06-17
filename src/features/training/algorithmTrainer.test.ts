@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import { ALGORITHM_SETS } from "./algorithmCatalog";
 import { algorithmStats, casesForMode, invertAlgorithm } from "./algorithmTrainer";
-import type { AlgorithmSetId } from "./types";
+import type { AlgorithmSetId, AlgorithmTime } from "./types";
 
 const supportedSetIds: AlgorithmSetId[] = ["OLL", "PLL", "COLL", "ZBLL", "LSLL", "CLL2", "PLL4"];
 
@@ -33,6 +33,15 @@ describe("algorithm trainer helpers", () => {
     expect(casesForMode(pll, "drill", subsetIds)).toBe(pll.cases);
   });
 
+  test("resolves the default store PLL subset ids in order", () => {
+    const pll = ALGORITHM_SETS.find((set) => set.id === "PLL")!;
+    const defaultSubsetIds = ["T", "Jb", "Ua", "Ub", "H", "Z", "Y"];
+
+    expect(
+      casesForMode(pll, "subset", defaultSubsetIds).map((algorithmCase) => algorithmCase.id),
+    ).toEqual(defaultSubsetIds);
+  });
+
   test("inverts algorithms by reversing moves and flipping turn suffixes", () => {
     expect(invertAlgorithm("R U R' U'")).toBe("U R U' R'");
     expect(invertAlgorithm("R2 U F' M")).toBe("M' F U' R2");
@@ -48,7 +57,13 @@ describe("algorithm trainer helpers", () => {
   });
 
   test("summarizes populated timing history", () => {
-    expect(algorithmStats([1200, 900, 1500])).toEqual({
+    const history: AlgorithmTime[] = [
+      { setId: "PLL", caseId: "T", ms: 1200, timestamp: 1 },
+      { setId: "PLL", caseId: "T", ms: 900, timestamp: 2 },
+      { setId: "PLL", caseId: "T", ms: 1500, timestamp: 3 },
+    ];
+
+    expect(algorithmStats(history)).toEqual({
       count: 3,
       bestMs: 900,
       averageMs: 1200,

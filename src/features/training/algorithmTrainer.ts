@@ -1,5 +1,5 @@
 import type { AlgorithmCase, AlgorithmSet } from "./algorithmCatalog";
-import type { AlgorithmMode } from "./types";
+import type { AlgorithmMode, AlgorithmTime } from "./types";
 
 export type AlgorithmStats = {
   count: number;
@@ -17,8 +17,11 @@ export function casesForMode(
     return set.cases;
   }
 
-  const subset = new Set(subsetIds);
-  return set.cases.filter((algorithmCase) => subset.has(algorithmCase.id));
+  const casesById = new Map(set.cases.map((algorithmCase) => [algorithmCase.id, algorithmCase]));
+  return subsetIds.flatMap((caseId) => {
+    const algorithmCase = casesById.get(caseId);
+    return algorithmCase ? [algorithmCase] : [];
+  });
 }
 
 function invertMove(move: string): string {
@@ -35,8 +38,8 @@ export function invertAlgorithm(algorithm: string): string {
   return algorithm.trim().split(/\s+/).reverse().map(invertMove).join(" ");
 }
 
-export function algorithmStats(times: number[]): AlgorithmStats {
-  if (times.length === 0) {
+export function algorithmStats(history: AlgorithmTime[]): AlgorithmStats {
+  if (history.length === 0) {
     return {
       count: 0,
       bestMs: null,
@@ -45,12 +48,13 @@ export function algorithmStats(times: number[]): AlgorithmStats {
     };
   }
 
+  const times = history.map((time) => time.ms);
   const totalMs = times.reduce((sum, time) => sum + time, 0);
 
   return {
-    count: times.length,
+    count: history.length,
     bestMs: Math.min(...times),
-    averageMs: Math.round(totalMs / times.length),
-    lastMs: times[times.length - 1]!,
+    averageMs: Math.round(totalMs / history.length),
+    lastMs: history[history.length - 1]!.ms,
   };
 }
