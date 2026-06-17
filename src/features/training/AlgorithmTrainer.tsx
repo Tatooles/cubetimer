@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrambleDraw } from "../scrambles/ScrambleDraw";
 import { formatSolveTime, formatTimerTime } from "../timer/timerFormat";
 import { useTimerController } from "../timer/useTimerController";
@@ -9,7 +9,7 @@ import type { AlgorithmSettings, AlgorithmTime } from "./types";
 type AlgorithmTrainerProps = {
   settings: AlgorithmSettings;
   historyByCase: Record<string, AlgorithmTime[]>;
-  onRecordTime: (caseId: string, ms: number) => void;
+  onRecordTime: (setId: AlgorithmSettings["activeSetId"], caseId: string, ms: number) => void;
 };
 
 function activeCases(settings: AlgorithmSettings) {
@@ -35,17 +35,48 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function shouldIgnoreGlobalShortcut(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (target.closest('[data-global-shortcuts="ignore"]')) {
+    return true;
+  }
+
+  if (target.isContentEditable) {
+    return true;
+  }
+
+  return ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
+}
+
 export function AlgorithmTrainer({ settings, historyByCase, onRecordTime }: AlgorithmTrainerProps) {
+  const trainerRef = useRef<HTMLElement | null>(null);
+  const activeRunCaseRef = useRef<{
+    setId: AlgorithmSettings["activeSetId"];
+    caseId: string;
+  } | null>(null);
   const { set, cases } = useMemo(() => activeCases(settings), [settings]);
   const [caseIndexBySet, setCaseIndexBySet] = useState<Record<string, number>>({});
   const activeIndex = Math.min(caseIndexBySet[set.id] ?? 0, Math.max(cases.length - 1, 0));
   const currentCase: AlgorithmCase | undefined = cases[activeIndex];
 
   const timer = useTimerController((ms) => {
-    if (currentCase) {
-      onRecordTime(currentCase.id, ms);
+    const solvedCase = activeRunCaseRef.current;
+    activeRunCaseRef.current = null;
+
+    if (solvedCase) {
+      onRecordTime(solvedCase.setId, solvedCase.caseId, ms);
     }
   }, 350);
+
+  const pressTimer = useCallback(() => {
+    if (timer.stage !== "running" && currentCase) {
+      activeRunCaseRef.current = { setId: set.id, caseId: currentCase.id };
+    }
+    timer.press();
+  }, [currentCase, set.id, timer]);
 
   useEffect(() => {
     setCaseIndexBySet((current) => {
@@ -59,14 +90,27 @@ export function AlgorithmTrainer({ settings, historyByCase, onRecordTime }: Algo
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.code === "Space" && !event.repeat) {
+      if (
+        event.code === "Space" &&
+        !event.repeat &&
+        !shouldIgnoreGlobalShortcut(event.target) &&
+        (!document.activeElement ||
+          document.activeElement === document.body ||
+          trainerRef.current?.contains(document.activeElement))
+      ) {
         event.preventDefault();
-        timer.press();
+        pressTimer();
       }
     }
 
     function onKeyUp(event: KeyboardEvent) {
-      if (event.code === "Space") {
+      if (
+        event.code === "Space" &&
+        !shouldIgnoreGlobalShortcut(event.target) &&
+        (!document.activeElement ||
+          document.activeElement === document.body ||
+          trainerRef.current?.contains(document.activeElement))
+      ) {
         event.preventDefault();
         timer.release();
       }
@@ -78,7 +122,7 @@ export function AlgorithmTrainer({ settings, historyByCase, onRecordTime }: Algo
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [timer]);
+  }, [pressTimer, timer]);
 
   function nextCase() {
     if (cases.length === 0) {
@@ -92,7 +136,10 @@ export function AlgorithmTrainer({ settings, historyByCase, onRecordTime }: Algo
 
   if (!currentCase) {
     return (
-      <section className="flex h-full min-h-0 items-center justify-center px-4 py-4">
+      <section
+        ref={trainerRef}
+        className="flex h-full min-h-0 items-center justify-center px-4 py-4"
+      >
         <div className="max-w-md rounded-md border border-white/[0.07] bg-white/[0.02] p-5 text-center">
           <div className="text-sm font-medium text-zinc-200">Choose at least one case</div>
           <p className="mt-2 text-xs leading-relaxed text-zinc-600">
@@ -108,7 +155,7 @@ export function AlgorithmTrainer({ settings, historyByCase, onRecordTime }: Algo
   const eventId = set.id === "CLL2" ? "222" : "333";
 
   return (
-    <section className="h-full min-h-0 overflow-y-auto px-4 py-4 md:px-6">
+    <section ref={trainerRef} className="h-full min-h-0 overflow-y-auto px-4 py-4 md:px-6">
       <div className="mx-auto flex max-w-4xl flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-white/[0.07] bg-white/[0.03] px-3 py-1 text-xs font-medium text-zinc-200">
@@ -122,7 +169,10 @@ export function AlgorithmTrainer({ settings, historyByCase, onRecordTime }: Algo
           </span>
         </div>
 
-        <div className="rounded-md border border-white/[0.07] bg-white/[0.02] p-4">
+        <div
+          data-testid="algorithm-current-case"
+          className="rounded-md border border-white/[0.07] bg-white/[0.02] p-4"
+        >
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
@@ -165,7 +215,8 @@ export function AlgorithmTrainer({ settings, historyByCase, onRecordTime }: Algo
 
         <button
           type="button"
-          onPointerDown={timer.press}
+          data-testid="algorithm-timer-surface"
+          onPointerDown={pressTimer}
           onPointerUp={timer.release}
           onPointerLeave={timer.stage === "running" ? undefined : timer.release}
           className="rounded-md border border-white/[0.07] bg-black px-4 py-8 text-center outline-none transition hover:border-white/15"

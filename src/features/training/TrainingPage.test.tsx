@@ -2,7 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, test } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { TimerPage } from "../timer/TimerPage";
 import { defaultTrainingState, TRAINING_STORAGE_KEY } from "./trainingStore";
 import { TrainingPage } from "./TrainingPage";
@@ -52,6 +52,16 @@ function button(name: string): HTMLButtonElement {
   return candidate;
 }
 
+function testId(id: string): HTMLElement {
+  const candidate = document.body.querySelector(`[data-testid="${id}"]`);
+
+  if (!(candidate instanceof HTMLElement)) {
+    throw new Error(`Test id not found: ${id}`);
+  }
+
+  return candidate;
+}
+
 async function render(element: ReactNode) {
   await act(async () => {
     root.render(element);
@@ -72,6 +82,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   act(() => root.unmount());
   container.remove();
   localStorage.clear();
@@ -152,14 +163,82 @@ describe("TrainingPage interactions", () => {
 
     await click(button("Algorithms"));
 
-    expect(pageText()).toContain("PLL");
-    expect(pageText()).toContain("T Perm");
+    const currentCase = testId("algorithm-current-case");
+
+    expect(currentCase.textContent).toContain("Aa Perm");
+    expect(currentCase.textContent).not.toContain("Ab Perm");
     expect(pageText()).toContain("Hold space");
     expect(pageText()).toContain("Next case");
 
     await click(button("Next case"));
 
-    expect(pageText()).toContain("Jb Perm");
+    expect(currentCase.textContent).toContain("Ab Perm");
+    expect(currentCase.textContent).not.toContain("Aa Perm");
+  });
+
+  test("ignores global space shortcuts from algorithm settings controls", async () => {
+    await render(<TrainingPage />);
+
+    await click(button("Algorithms"));
+    await click(button("Settings"));
+
+    const select = document.body.querySelector("select");
+    if (!(select instanceof HTMLSelectElement)) {
+      throw new Error("Algorithm set select not found");
+    }
+    select.focus();
+
+    const keydown = new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      code: "Space",
+    });
+
+    await act(async () => {
+      select.dispatchEvent(keydown);
+    });
+
+    expect(keydown.defaultPrevented).toBe(false);
+    expect(testId("algorithm-timer-surface").textContent).not.toContain("Release to start");
+  });
+
+  test("records algorithm time against the case active when the run started", async () => {
+    let now = 1_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    vi.spyOn(window, "setTimeout").mockImplementation((handler) => {
+      if (typeof handler === "function") {
+        handler();
+      }
+      return 1;
+    });
+    vi.spyOn(window, "clearTimeout").mockImplementation(() => undefined);
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+
+    await render(<TrainingPage />);
+    await click(button("Algorithms"));
+
+    const timerSurface = testId("algorithm-timer-surface");
+
+    await act(async () => {
+      timerSurface.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      timerSurface.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+    });
+
+    await click(button("Next case"));
+
+    now = 2_250;
+
+    await act(async () => {
+      timerSurface.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    });
+
+    const saved = JSON.parse(localStorage.getItem(TRAINING_STORAGE_KEY) ?? "{}") as {
+      algorithms?: { historyByCase?: Record<string, Array<{ caseId: string; ms: number }>> };
+    };
+
+    expect(saved.algorithms?.historyByCase?.Aa?.[0]).toMatchObject({ caseId: "Aa", ms: 1250 });
+    expect(saved.algorithms?.historyByCase?.Ab).toBeUndefined();
   });
 
   test("opens algorithm settings and saves a subset selection", async () => {
@@ -183,6 +262,35 @@ describe("TrainingPage interactions", () => {
 
     expect(pageText()).toContain("Choose at least one case");
     expect(localStorage.getItem(TRAINING_STORAGE_KEY)).toContain('"PLL":[]');
+  });
+
+  test("saves subset changes to the set that opened the editor", async () => {
+    await render(<TrainingPage />);
+
+    await click(button("Algorithms"));
+    await click(button("Settings"));
+    await click(button("Edit subset"));
+
+    const select = document.body.querySelector("select");
+    if (!(select instanceof HTMLSelectElement)) {
+      throw new Error("Algorithm set select not found");
+    }
+
+    await act(async () => {
+      select.value = "OLL";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    await click(button("Select none"));
+    await click(button("Done"));
+
+    const saved = JSON.parse(localStorage.getItem(TRAINING_STORAGE_KEY) ?? "{}") as {
+      algorithms?: { settings?: { subsets?: Record<string, string[]> } };
+    };
+
+    expect(saved.algorithms?.settings?.subsets?.PLL).toEqual([]);
+    expect(saved.algorithms?.settings?.subsets?.OLL).toEqual([]);
+    expect(pageText()).not.toContain("Choose at least one case");
   });
 
   test("opens and toggles history and settings mobile panels", async () => {

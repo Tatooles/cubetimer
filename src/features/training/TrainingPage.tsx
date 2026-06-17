@@ -18,6 +18,7 @@ import { TrainingHeader } from "./TrainingHeader";
 import { TrainingMobileNav, type TrainingMobilePanel } from "./TrainingMobileNav";
 import { TrainingSidebar } from "./TrainingSidebar";
 import type {
+  AlgorithmSetId,
   CrossRating,
   CrossSettings as CrossSettingsValue,
   TrainingMode,
@@ -38,10 +39,12 @@ function createAttemptId(): string {
 export function TrainingPage() {
   const [state, setState] = useState<TrainingState>(() => loadTrainingState());
   const [activeMobilePanel, setActiveMobilePanel] = useState<TrainingMobilePanel>(null);
-  const [subsetEditorOpen, setSubsetEditorOpen] = useState(false);
+  const [editingSubsetSetId, setEditingSubsetSetId] = useState<AlgorithmSetId | null>(null);
   const activeAlgorithmSet =
     ALGORITHM_SETS.find((set) => set.id === state.algorithms.settings.activeSetId) ??
     ALGORITHM_SETS[0]!;
+  const editingAlgorithmSet =
+    ALGORITHM_SETS.find((set) => set.id === editingSubsetSetId) ?? activeAlgorithmSet;
 
   useEffect(() => {
     saveTrainingState(state);
@@ -63,21 +66,28 @@ export function TrainingPage() {
   }
 
   function saveAlgorithmSubset(selectedIds: string[]) {
-    setSubsetEditorOpen(false);
+    const setId = editingSubsetSetId;
+    setEditingSubsetSetId(null);
+    if (!setId) {
+      return;
+    }
+
     setState((current) =>
       updateAlgorithmSettings(current, {
         subsets: {
           ...current.algorithms.settings.subsets,
-          [activeAlgorithmSet.id]: selectedIds,
+          [setId]: selectedIds,
         },
       }),
     );
   }
 
-  function recordAlgorithmCaseTime(caseId: string, ms: number) {
-    setState((current) =>
-      recordAlgorithmTime(current, current.algorithms.settings.activeSetId, caseId, ms),
-    );
+  function recordAlgorithmCaseTime(setId: AlgorithmSetId, caseId: string, ms: number) {
+    setState((current) => recordAlgorithmTime(current, setId, caseId, ms));
+  }
+
+  function openSubsetEditor() {
+    setEditingSubsetSetId(state.algorithms.settings.activeSetId);
   }
 
   function recordRatedCrossAttempt(attempt: {
@@ -109,7 +119,7 @@ export function TrainingPage() {
       <AlgorithmSettings
         settings={state.algorithms.settings}
         onChange={updateAlgorithmSettingsPatch}
-        onEditSubset={() => setSubsetEditorOpen(true)}
+        onEditSubset={openSubsetEditor}
       />
     );
   }
@@ -187,10 +197,10 @@ export function TrainingPage() {
       </Sheet>
 
       <SubsetEditor
-        open={subsetEditorOpen}
-        set={activeAlgorithmSet}
-        selectedIds={state.algorithms.settings.subsets[activeAlgorithmSet.id] ?? []}
-        onCancel={() => setSubsetEditorOpen(false)}
+        open={editingSubsetSetId !== null}
+        set={editingAlgorithmSet}
+        selectedIds={state.algorithms.settings.subsets[editingAlgorithmSet.id] ?? []}
+        onCancel={() => setEditingSubsetSetId(null)}
         onSave={saveAlgorithmSubset}
       />
     </section>
