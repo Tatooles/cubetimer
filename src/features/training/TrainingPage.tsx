@@ -18,6 +18,8 @@ import type {
   TrainingState,
 } from "./types";
 
+let fallbackAttemptIdCounter = 0;
+
 function SettingsPlaceholder({ state }: { state: TrainingState }) {
   return (
     <section className="h-full overflow-y-auto border-white/[0.07] px-5 py-4">
@@ -34,7 +36,12 @@ function SettingsPlaceholder({ state }: { state: TrainingState }) {
 }
 
 function createAttemptId(): string {
-  return globalThis.crypto?.randomUUID?.() ?? `cross-${Date.now().toString(36)}`;
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  fallbackAttemptIdCounter += 1;
+  return `cross-${Date.now().toString(36)}-${fallbackAttemptIdCounter.toString(36)}`;
 }
 
 export function TrainingPage() {

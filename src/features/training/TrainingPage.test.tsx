@@ -4,8 +4,9 @@ import { createRoot, type Root } from "react-dom/client";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, test } from "vite-plus/test";
 import { TimerPage } from "../timer/TimerPage";
-import { TRAINING_STORAGE_KEY } from "./trainingStore";
+import { defaultTrainingState, TRAINING_STORAGE_KEY } from "./trainingStore";
 import { TrainingPage } from "./TrainingPage";
+import { TrainingSidebar } from "./TrainingSidebar";
 import trainingPageSource from "./TrainingPage.tsx?raw";
 import crossSettingsSource from "./CrossSettings.tsx?raw";
 import crossTrainerSource from "./CrossTrainer.tsx?raw";
@@ -37,7 +38,8 @@ function timerPageGrid(): HTMLElement {
 
 function button(name: string): HTMLButtonElement {
   const candidate = Array.from(document.body.querySelectorAll("button")).find(
-    (element) => element.textContent?.trim() === name,
+    (element) =>
+      element.textContent?.trim() === name || element.getAttribute("aria-label") === name,
   );
 
   if (!(candidate instanceof HTMLButtonElement)) {
@@ -99,6 +101,7 @@ describe("TrainingPage shell composition", () => {
     expect(crossTrainerSource).toContain("Reveal next move");
     expect(crossTrainerSource).toContain("How did that go?");
     expect(crossTrainerSource).toContain("Inspect");
+    expect(crossTrainerSource).toContain("copyTextToClipboard");
   });
 
   test("cross settings source exposes color, target, and xcross controls", () => {
@@ -159,6 +162,56 @@ describe("TrainingPage interactions", () => {
     expect(pageText()).toContain("good");
   });
 
+  test("uses unique fallback ids when randomUUID is unavailable", async () => {
+    const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+    const dateNow = Date.now;
+
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: {},
+    });
+    Date.now = () => 123_456;
+
+    try {
+      await render(<TrainingPage />);
+
+      await click(button("Good"));
+      await click(button("Good"));
+
+      const saved = JSON.parse(localStorage.getItem(TRAINING_STORAGE_KEY) ?? "{}") as {
+        cross?: { history?: Array<{ id: string }> };
+      };
+      const ids = saved.cross?.history?.map((attempt) => attempt.id) ?? [];
+
+      expect(ids).toHaveLength(2);
+      expect(new Set(ids).size).toBe(2);
+    } finally {
+      Date.now = dateNow;
+      if (cryptoDescriptor) {
+        Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+      }
+    }
+  });
+
+  test("changing short scramble resets cross trainer local state", async () => {
+    await render(<TrainingPage />);
+
+    await click(button("Flag"));
+    await click(button("Inspect"));
+    await click(button("Reveal next move"));
+
+    expect(pageText()).toContain("Flagged");
+    expect(pageText()).toContain("15s inspection active");
+    expect(pageText()).not.toContain("Reveal the solution when ready.");
+
+    await click(button("Short scramble"));
+
+    expect(pageText()).toContain("Flag");
+    expect(pageText()).not.toContain("Flagged");
+    expect(pageText()).not.toContain("15s inspection active");
+    expect(pageText()).toContain("Reveal the solution when ready.");
+  });
+
   test("does not expose graph or session controls in training mobile nav", async () => {
     await render(<TrainingPage />);
 
@@ -208,5 +261,32 @@ describe("TrainingMobileNav", () => {
     expect(trainingMobileNavSource).toContain("Settings");
     expect(trainingMobileNavSource).not.toContain("Graph");
     expect(trainingMobileNavSource).not.toContain("Session");
+  });
+});
+
+describe("TrainingSidebar", () => {
+  test("numbers duplicate cross attempt object references by row position", async () => {
+    const duplicateAttempt = {
+      id: "cross-1",
+      scramble: "R U",
+      solution: ["D", "L"],
+      moveCount: 2,
+      rating: "good" as const,
+      flagged: false,
+      xcross: false,
+      timestamp: 1,
+    };
+    const state = {
+      ...defaultTrainingState(),
+      cross: {
+        ...defaultTrainingState().cross,
+        history: [duplicateAttempt, duplicateAttempt],
+      },
+    };
+
+    await render(<TrainingSidebar state={state} activeTrainer="cross" />);
+
+    expect(pageText()).toContain("#2");
+    expect(pageText()).toContain("#1");
   });
 });

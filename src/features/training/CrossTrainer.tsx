@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { copyTextToClipboard } from "../../shared/clipboard/copyTextToClipboard";
 import { ScrambleDraw } from "../scrambles/ScrambleDraw";
 import { generateCrossScramble, mockCrossSolution, type CrossSolution } from "./crossTrainer";
 import type { CrossRating, CrossSettings } from "./types";
@@ -28,11 +29,37 @@ export function CrossTrainer({ settings, onRate }: CrossTrainerProps) {
   const [flagged, setFlagged] = useState(false);
   const [inspecting, setInspecting] = useState(false);
   const [revealCount, setRevealCount] = useState(0);
+  const previousSettings = useRef(settings);
   const solution = useMemo(() => mockCrossSolution(scramble, settings), [scramble, settings]);
   const moves = visibleMoves(solution);
   const revealedCount =
     settings.revealMode === "all" && revealCount > 0 ? moves.length : revealCount;
   const shownMoves = moves.slice(0, revealedCount);
+
+  useEffect(() => {
+    const previous = previousSettings.current;
+    const changed =
+      previous.color !== settings.color ||
+      previous.moveTarget !== settings.moveTarget ||
+      previous.xcross !== settings.xcross ||
+      previous.shortScramble !== settings.shortScramble ||
+      previous.inspection !== settings.inspection ||
+      previous.revealMode !== settings.revealMode;
+
+    if (!changed) {
+      return;
+    }
+
+    setFlagged(false);
+    setInspecting(false);
+    setRevealCount(0);
+
+    if (previous.shortScramble !== settings.shortScramble) {
+      setScramble(newScramble(settings.shortScramble));
+    }
+
+    previousSettings.current = settings;
+  }, [settings]);
 
   function advance() {
     setScramble(newScramble(settings.shortScramble));
@@ -64,7 +91,7 @@ export function CrossTrainer({ settings, onRate }: CrossTrainerProps) {
   }
 
   function copyScramble() {
-    void globalThis.navigator?.clipboard?.writeText(scramble);
+    void copyTextToClipboard(scramble);
   }
 
   return (
