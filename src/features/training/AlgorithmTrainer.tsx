@@ -10,6 +10,7 @@ type AlgorithmTrainerProps = {
   settings: AlgorithmSettings;
   historyByCase: Record<string, AlgorithmTime[]>;
   onRecordTime: (setId: AlgorithmSettings["activeSetId"], caseId: string, ms: number) => void;
+  shortcutsDisabled?: boolean;
 };
 
 function activeCases(settings: AlgorithmSettings) {
@@ -51,7 +52,12 @@ function shouldIgnoreGlobalShortcut(target: EventTarget | null): boolean {
   return ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
 }
 
-export function AlgorithmTrainer({ settings, historyByCase, onRecordTime }: AlgorithmTrainerProps) {
+export function AlgorithmTrainer({
+  settings,
+  historyByCase,
+  onRecordTime,
+  shortcutsDisabled = false,
+}: AlgorithmTrainerProps) {
   const trainerRef = useRef<HTMLElement | null>(null);
   const activeRunCaseRef = useRef<{
     setId: AlgorithmSettings["activeSetId"];
@@ -93,6 +99,7 @@ export function AlgorithmTrainer({ settings, historyByCase, onRecordTime }: Algo
       if (
         event.code === "Space" &&
         !event.repeat &&
+        !shortcutsDisabled &&
         !shouldIgnoreGlobalShortcut(event.target) &&
         (!document.activeElement ||
           document.activeElement === document.body ||
@@ -106,6 +113,7 @@ export function AlgorithmTrainer({ settings, historyByCase, onRecordTime }: Algo
     function onKeyUp(event: KeyboardEvent) {
       if (
         event.code === "Space" &&
+        !shortcutsDisabled &&
         !shouldIgnoreGlobalShortcut(event.target) &&
         (!document.activeElement ||
           document.activeElement === document.body ||
@@ -122,7 +130,7 @@ export function AlgorithmTrainer({ settings, historyByCase, onRecordTime }: Algo
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [pressTimer, timer]);
+  }, [pressTimer, shortcutsDisabled, timer]);
 
   function nextCase() {
     if (cases.length === 0) {

@@ -293,6 +293,60 @@ describe("TrainingPage interactions", () => {
     expect(pageText()).not.toContain("Choose at least one case");
   });
 
+  test("does not run algorithm space shortcuts behind the subset editor", async () => {
+    let now = 1_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    vi.spyOn(window, "setTimeout").mockImplementation((handler) => {
+      if (typeof handler === "function") {
+        handler();
+      }
+      return 1;
+    });
+    vi.spyOn(window, "clearTimeout").mockImplementation(() => undefined);
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+
+    await render(<TrainingPage />);
+
+    await click(button("Algorithms"));
+    await click(button("Settings"));
+    await click(button("Edit subset"));
+
+    await act(async () => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      document.body.focus();
+    });
+
+    await act(async () => {
+      document.body.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, cancelable: true, code: "Space" }),
+      );
+      document.body.dispatchEvent(
+        new KeyboardEvent("keyup", { bubbles: true, cancelable: true, code: "Space" }),
+      );
+    });
+
+    expect(testId("algorithm-timer-surface").textContent).not.toContain(
+      "Tap or press space to stop",
+    );
+
+    now = 2_000;
+
+    await act(async () => {
+      document.body.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, cancelable: true, code: "Space" }),
+      );
+    });
+
+    const saved = JSON.parse(localStorage.getItem(TRAINING_STORAGE_KEY) ?? "{}") as {
+      algorithms?: { historyByCase?: Record<string, unknown[]> };
+    };
+
+    expect(saved.algorithms?.historyByCase ?? {}).toEqual({});
+  });
+
   test("opens and toggles history and settings mobile panels", async () => {
     await render(<TrainingPage />);
 

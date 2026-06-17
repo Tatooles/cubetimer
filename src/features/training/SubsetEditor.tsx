@@ -61,6 +61,7 @@ export function SubsetEditor({ open, set, selectedIds, onCancel, onSave }: Subse
         role="dialog"
         aria-modal="true"
         aria-label="Edit algorithm subset"
+        data-global-shortcuts="ignore"
         className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-md border border-white/[0.08] bg-[#0a0a0b] shadow-2xl shadow-black/70"
       >
         <header className="border-b border-white/[0.07] px-4 py-3">

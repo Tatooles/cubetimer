@@ -144,6 +144,7 @@ export function TrainingPage() {
             settings={state.algorithms.settings}
             historyByCase={state.algorithms.historyByCase}
             onRecordTime={recordAlgorithmCaseTime}
+            shortcutsDisabled={editingSubsetSetId !== null || activeMobilePanel !== null}
           />
         )}
       </main>
