@@ -432,27 +432,33 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
           </div>
         </header>
 
-        <SessionSidebar
-          sessions={state.sessions}
-          activeSessionId={state.selectedSessionId}
-          disabled={timerLocked}
-          className="hidden md:col-start-1 md:flex md:border-r"
-          onSessionChange={(sessionId) => {
-            if (timerLocked) {
-              return;
-            }
+        {activeSection === "timer" ? (
+          <SessionSidebar
+            sessions={state.sessions}
+            activeSessionId={state.selectedSessionId}
+            disabled={timerLocked}
+            className="hidden md:col-start-1 md:flex md:border-r"
+            onSessionChange={(sessionId) => {
+              if (timerLocked) {
+                return;
+              }
 
-            setState((current) => ({ ...current, selectedSessionId: sessionId }));
-          }}
-          onNewSession={createSession}
-          onClear={clearSession}
-          onExport={exportSession}
-          onOpenSolve={(solve) => setSelectedSolveId(solve.id)}
-          onPenalty={updatePenalty}
-          onDelete={deleteSolve}
-        />
+              setState((current) => ({ ...current, selectedSessionId: sessionId }));
+            }}
+            onNewSession={createSession}
+            onClear={clearSession}
+            onExport={exportSession}
+            onOpenSolve={(solve) => setSelectedSolveId(solve.id)}
+            onPenalty={updatePenalty}
+            onDelete={deleteSolve}
+          />
+        ) : null}
 
-        <main className="min-w-0 overflow-hidden md:col-start-2">
+        <main
+          className={`min-w-0 overflow-hidden ${
+            activeSection === "training" ? "md:col-span-3" : "md:col-start-2"
+          }`}
+        >
           {activeSection === "training" ? (
             <TrainingPage />
           ) : (
@@ -522,76 +528,80 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
         ) : null}
       </div>
 
-      <Sheet
-        modal={false}
-        open={activeSheet === "session"}
-        onOpenChange={(open) => {
-          if (!open) {
-            setActiveSheet(null);
-          }
-        }}
-      >
-        <SheetContent
-          side="left"
-          className="mobile-session-sheet w-[min(320px,88vw)] overflow-hidden border-white/[0.07] bg-[#0a0a0b] p-0"
-        >
-          <SheetTitle className="sr-only">Session</SheetTitle>
-          <SheetDescription className="sr-only">
-            Session stats, solve history, and session actions.
-          </SheetDescription>
-          <SessionSidebar
-            sessions={state.sessions}
-            activeSessionId={state.selectedSessionId}
-            disabled={timerLocked}
-            className="h-full"
-            onSessionChange={(sessionId) => {
-              if (timerLocked) {
-                return;
+      {activeSection === "timer" ? (
+        <>
+          <Sheet
+            modal={false}
+            open={activeSheet === "session"}
+            onOpenChange={(open) => {
+              if (!open) {
+                setActiveSheet(null);
               }
-
-              setState((current) => ({ ...current, selectedSessionId: sessionId }));
             }}
-            onNewSession={createSession}
-            onClear={clearSession}
-            onExport={exportSession}
-            onOpenSolve={(solve) => setSelectedSolveId(solve.id)}
-            onPenalty={updatePenalty}
-            onDelete={deleteSolve}
-          />
-        </SheetContent>
-      </Sheet>
-      <MobileSheet
-        active={activeSheet}
-        sheetId="graph"
-        title="Progress"
-        onClose={() => setActiveSheet(null)}
-      >
-        <ProgressChart solves={session.solves} />
-      </MobileSheet>
-      <MobileSheet
-        active={activeSheet}
-        sheetId="draw"
-        title="Scramble draw"
-        onClose={() => setActiveSheet(null)}
-      >
-        <ScrambleDraw eventId={state.eventId} scramble={state.currentScramble} />
-      </MobileSheet>
-      <MobileSheet
-        active={activeSheet}
-        sheetId="histogram"
-        title="Histogram"
-        onClose={() => setActiveSheet(null)}
-      >
-        <Histogram solves={session.solves} />
-      </MobileSheet>
-      <MobileSheet
-        active={activeSheet}
-        sheetId="settings"
-        title="Settings"
-        onClose={() => setActiveSheet(null)}
-      >
-        <SettingsPanel settings={state.settings} onChange={setSettings} />
-      </MobileSheet>
+          >
+            <SheetContent
+              side="left"
+              className="mobile-session-sheet w-[min(320px,88vw)] overflow-hidden border-white/[0.07] bg-[#0a0a0b] p-0"
+            >
+              <SheetTitle className="sr-only">Session</SheetTitle>
+              <SheetDescription className="sr-only">
+                Session stats, solve history, and session actions.
+              </SheetDescription>
+              <SessionSidebar
+                sessions={state.sessions}
+                activeSessionId={state.selectedSessionId}
+                disabled={timerLocked}
+                className="h-full"
+                onSessionChange={(sessionId) => {
+                  if (timerLocked) {
+                    return;
+                  }
+
+                  setState((current) => ({ ...current, selectedSessionId: sessionId }));
+                }}
+                onNewSession={createSession}
+                onClear={clearSession}
+                onExport={exportSession}
+                onOpenSolve={(solve) => setSelectedSolveId(solve.id)}
+                onPenalty={updatePenalty}
+                onDelete={deleteSolve}
+              />
+            </SheetContent>
+          </Sheet>
+          <MobileSheet
+            active={activeSheet}
+            sheetId="graph"
+            title="Progress"
+            onClose={() => setActiveSheet(null)}
+          >
+            <ProgressChart solves={session.solves} />
+          </MobileSheet>
+          <MobileSheet
+            active={activeSheet}
+            sheetId="draw"
+            title="Scramble draw"
+            onClose={() => setActiveSheet(null)}
+          >
+            <ScrambleDraw eventId={state.eventId} scramble={state.currentScramble} />
+          </MobileSheet>
+          <MobileSheet
+            active={activeSheet}
+            sheetId="histogram"
+            title="Histogram"
+            onClose={() => setActiveSheet(null)}
+          >
+            <Histogram solves={session.solves} />
+          </MobileSheet>
+          <MobileSheet
+            active={activeSheet}
+            sheetId="settings"
+            title="Settings"
+            onClose={() => setActiveSheet(null)}
+          >
+            <SettingsPanel settings={state.settings} onChange={setSettings} />
+          </MobileSheet>
+        </>
+      ) : null}
 
       {settingsOpen ? (
         <SettingsPanel
