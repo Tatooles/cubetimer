@@ -23,28 +23,29 @@ describe("App keyboard listeners", () => {
 describe("App top-level sections", () => {
   test("uses local state for Timer and Training instead of a routing library", () => {
     expect(appSource).toContain('useState<"timer" | "training">("timer")');
-    expect(appSource).toContain('activeSection === "timer"');
-    expect(appSource).toContain('activeSection === "training"');
+    expect(appSource).toContain("<TimerPage");
+    expect(appSource).toContain("activeSection={activeSection}");
     expect(appSource).not.toContain("react-router");
     expect(appSource).not.toContain("createBrowserRouter");
     expect(appSource).not.toContain("RouterProvider");
   });
 
-  test("renders top-level Timer and Training tabs without Profile", () => {
-    expect(appSource).toContain(">Timer<");
-    expect(appSource).toContain(">Training<");
-    expect(appSource).not.toContain("Profile");
-  });
-
-  test("passes section state into TimerPage instead of stacking a second full-screen shell", () => {
+  test("passes section state into TimerPage instead of rendering a second shell", () => {
     expect(appSource).toContain(
       "<TimerPage activeSection={activeSection} onSectionChange={setActiveSection} />",
     );
-    expect(appSource).not.toContain("embedded");
+    expect(appSource).not.toContain("showTraining");
+    expect(appSource).not.toContain("Profile");
   });
 });
 
 describe("TimerPage header layout", () => {
+  test("renders top-level Timer and Training tabs without Profile", () => {
+    expect(timerPageSource).toContain('handleSectionChange("timer")');
+    expect(timerPageSource).toContain('handleSectionChange("training")');
+    expect(timerPageSource).not.toContain("Profile");
+  });
+
   test("puts both mobile and desktop event selectors in the top bar", () => {
     expect(timerPageSource).toContain('mode="select"');
     expect(timerPageSource).toContain('mode="tabs"');
@@ -62,6 +63,12 @@ describe("TimerPage header layout", () => {
     expect(timerPageSource).toContain("grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]");
     expect(timerPageSource).toContain("justify-self-center md:hidden");
     expect(timerPageSource).toContain("justify-self-end");
+  });
+
+  test("guards training tab switches while the timer is locked", () => {
+    expect(timerPageSource).toContain('if (timerLocked && section === "training")');
+    expect(timerPageSource).toContain("onSectionChange?.(section)");
+    expect(timerPageSource).toContain('activeSection === "training" ? (');
   });
 });
 

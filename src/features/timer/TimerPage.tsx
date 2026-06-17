@@ -147,8 +147,21 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
   const pressTimer = timer.press;
   const releaseTimer = timer.release;
   const stopTimer = timer.stop;
-  const timerInputEnabled = state.currentScramble.trim().length > 0 && !scrambleLoading;
+  const timerSectionActive = activeSection === "timer";
+  const timerInputEnabled =
+    timerSectionActive && state.currentScramble.trim().length > 0 && !scrambleLoading;
   const timerLocked = timerStage === "running";
+
+  const handleSectionChange = useCallback(
+    (section: AppSection) => {
+      if (timerLocked && section === "training") {
+        return;
+      }
+
+      onSectionChange?.(section);
+    },
+    [onSectionChange, timerLocked],
+  );
 
   const setEvent = useCallback(
     (eventId: PuzzleEvent) => {
@@ -217,6 +230,10 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
         return;
       }
 
+      if (!timerSectionActive) {
+        return;
+      }
+
       if (timerStage === "running") {
         event.preventDefault();
         stopTimer();
@@ -258,6 +275,7 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
     requestScramble,
     state.eventId,
     stopTimer,
+    timerSectionActive,
     timerInputEnabled,
     timerStage,
     toggleLastPenalty,
@@ -348,7 +366,7 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
               <nav className="flex h-full min-w-0 items-stretch">
                 <button
                   type="button"
-                  onClick={() => onSectionChange("timer")}
+                  onClick={() => handleSectionChange("timer")}
                   className={`relative px-2 text-sm font-medium md:px-4 ${activeSection === "timer" ? "text-indigo-200" : "text-zinc-500 hover:text-zinc-200"}`}
                 >
                   Timer
@@ -358,7 +376,8 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
                 </button>
                 <button
                   type="button"
-                  onClick={() => onSectionChange("training")}
+                  onClick={() => handleSectionChange("training")}
+                  disabled={timerLocked}
                   className={`relative px-2 text-sm font-medium md:px-4 ${activeSection === "training" ? "text-indigo-200" : "text-zinc-500 hover:text-zinc-200"}`}
                 >
                   Training
@@ -422,65 +441,75 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
         />
 
         <main className="min-w-0 overflow-hidden md:col-start-2">
-          <div className="flex h-full flex-col">
-            <ScrambleBar
-              eventId={state.eventId}
-              scramble={state.currentScramble}
-              isLoading={scrambleLoading}
-              error={scrambleError}
-              copied={scrambleCopied}
-              disabled={timerLocked}
-              onNext={() => {
-                if (timerLocked) {
-                  return;
-                }
+          {activeSection === "training" ? (
+            <section className="flex h-full items-center justify-center text-zinc-500">
+              Training
+            </section>
+          ) : (
+            <div className="flex h-full flex-col">
+              <ScrambleBar
+                eventId={state.eventId}
+                scramble={state.currentScramble}
+                isLoading={scrambleLoading}
+                error={scrambleError}
+                copied={scrambleCopied}
+                disabled={timerLocked}
+                onNext={() => {
+                  if (timerLocked) {
+                    return;
+                  }
 
-                void requestScramble(state.eventId);
-              }}
-              onCopy={() => void copyScramble()}
-            />
-            <TimerSurface
-              stage={timerStage}
-              elapsedMs={timerElapsedMs}
-              bests={bests}
-              onPress={timerInputEnabled ? pressTimer : undefined}
-              onRelease={releaseTimer}
-            />
-          </div>
+                  void requestScramble(state.eventId);
+                }}
+                onCopy={() => void copyScramble()}
+              />
+              <TimerSurface
+                stage={timerStage}
+                elapsedMs={timerElapsedMs}
+                bests={bests}
+                onPress={timerInputEnabled ? pressTimer : undefined}
+                onRelease={releaseTimer}
+              />
+            </div>
+          )}
         </main>
 
-        <aside className="hidden overflow-y-auto border-l border-white/[0.07] md:col-start-3 md:flex md:flex-col">
-          {state.settings.showGraph ? (
-            <Module title="Progress">
-              <ProgressChart solves={session.solves} />
-              <div className="mt-2 flex gap-3 font-mono text-[10px] text-zinc-600">
-                <span>single</span>
-                <span className="text-red-300">ao5</span>
-                <span className="text-indigo-300">ao12</span>
-              </div>
-            </Module>
-          ) : null}
-          {state.settings.showDraw ? (
-            <Module title="Scramble draw">
-              <ScrambleDraw eventId={state.eventId} scramble={state.currentScramble} />
-            </Module>
-          ) : null}
-          {state.settings.showHistogram ? (
-            <Module title="Histogram">
-              <Histogram solves={session.solves} />
-            </Module>
-          ) : null}
-        </aside>
+        {activeSection === "timer" ? (
+          <>
+            <aside className="hidden overflow-y-auto border-l border-white/[0.07] md:col-start-3 md:flex md:flex-col">
+              {state.settings.showGraph ? (
+                <Module title="Progress">
+                  <ProgressChart solves={session.solves} />
+                  <div className="mt-2 flex gap-3 font-mono text-[10px] text-zinc-600">
+                    <span>single</span>
+                    <span className="text-red-300">ao5</span>
+                    <span className="text-indigo-300">ao12</span>
+                  </div>
+                </Module>
+              ) : null}
+              {state.settings.showDraw ? (
+                <Module title="Scramble draw">
+                  <ScrambleDraw eventId={state.eventId} scramble={state.currentScramble} />
+                </Module>
+              ) : null}
+              {state.settings.showHistogram ? (
+                <Module title="Histogram">
+                  <Histogram solves={session.solves} />
+                </Module>
+              ) : null}
+            </aside>
 
-        <MobileNav
-          active={activeSheet}
-          disabled={{
-            graph: !state.settings.showGraph,
-            draw: !state.settings.showDraw,
-            histogram: !state.settings.showHistogram,
-          }}
-          onSelect={setActiveSheet}
-        />
+            <MobileNav
+              active={activeSheet}
+              disabled={{
+                graph: !state.settings.showGraph,
+                draw: !state.settings.showDraw,
+                histogram: !state.settings.showHistogram,
+              }}
+              onSelect={setActiveSheet}
+            />
+          </>
+        ) : null}
       </div>
 
       <Sheet
