@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "../../shared/components/Sheet";
 import { AlgorithmSettings } from "./AlgorithmSettings";
 import { AlgorithmTrainer } from "./AlgorithmTrainer.tsx";
@@ -68,7 +68,15 @@ export function TrainingPage() {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape" || shouldIgnoreGlobalShortcut(event.target)) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (shouldIgnoreGlobalShortcut(event.target)) {
+        if (activeMobilePanel !== null || editingSubsetSetId !== null) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
         return;
       }
 
@@ -79,8 +87,8 @@ export function TrainingPage() {
       }
     }
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [activeMobilePanel, editingSubsetSetId]);
 
   function setActiveTrainer(activeTrainer: TrainingMode) {
@@ -126,6 +134,13 @@ export function TrainingPage() {
   function preventSheetControlEscape(event: Event) {
     if (shouldIgnoreGlobalShortcut(event.target)) {
       event.preventDefault();
+    }
+  }
+
+  function stopSheetControlEscape(event: ReactKeyboardEvent) {
+    if (event.key === "Escape" && shouldIgnoreGlobalShortcut(event.target)) {
+      event.preventDefault();
+      event.stopPropagation();
     }
   }
 
@@ -177,7 +192,11 @@ export function TrainingPage() {
 
       <main className="min-h-0 min-w-0 overflow-hidden md:col-start-2 md:row-start-2">
         {state.activeTrainer === "cross" ? (
-          <CrossTrainer settings={state.cross.settings} onRate={recordRatedCrossAttempt} />
+          <CrossTrainer
+            settings={state.cross.settings}
+            onRate={recordRatedCrossAttempt}
+            shortcutsDisabled={activeMobilePanel !== null || editingSubsetSetId !== null}
+          />
         ) : (
           <AlgorithmTrainer
             settings={state.algorithms.settings}
@@ -199,15 +218,13 @@ export function TrainingPage() {
         open={activeMobilePanel === "history"}
         onOpenChange={(open) => {
           if (!open) {
-            if (shouldIgnoreGlobalShortcut(document.activeElement)) {
-              return;
-            }
             setActiveMobilePanel(null);
           }
         }}
       >
         <SheetContent
           side="left"
+          onKeyDownCapture={stopSheetControlEscape}
           onEscapeKeyDown={preventSheetControlEscape}
           className="max-h-dvh w-[min(320px,88vw)] overflow-hidden border-white/[0.07] bg-[#0a0a0b] p-0"
         >
@@ -228,15 +245,13 @@ export function TrainingPage() {
         open={activeMobilePanel === "settings"}
         onOpenChange={(open) => {
           if (!open) {
-            if (shouldIgnoreGlobalShortcut(document.activeElement)) {
-              return;
-            }
             setActiveMobilePanel(null);
           }
         }}
       >
         <SheetContent
           side="right"
+          onKeyDownCapture={stopSheetControlEscape}
           onEscapeKeyDown={preventSheetControlEscape}
           className="max-h-dvh w-[min(320px,88vw)] overflow-y-auto border-white/[0.07] bg-[#0a0a0b] p-0"
         >

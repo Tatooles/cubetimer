@@ -480,6 +480,35 @@ describe("TrainingPage interactions", () => {
     expect(testId("cross-scramble").textContent).toBe(beforeIgnoredNext);
   });
 
+  test("cross keyboard shortcuts are disabled behind mobile panels", async () => {
+    await render(<TrainingPage />);
+
+    const initialScramble = testId("cross-scramble").textContent;
+
+    await click(button("Settings"));
+
+    await act(async () => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      document.body.focus();
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "f" }));
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "r" }));
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, cancelable: true, code: "Space" }),
+      );
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "n" }));
+    });
+
+    expect(testId("cross-scramble").textContent).toBe(initialScramble);
+    expect(pageText()).not.toContain("Flagged");
+    expect(pageText()).toContain("Reveal the solution when ready.");
+    expect(document.body.querySelectorAll('[data-testid="cross-solution-move"]')).toHaveLength(0);
+  });
+
   test("cross reveal-all shortcut exposes every visible move", async () => {
     await render(<TrainingPage />);
 

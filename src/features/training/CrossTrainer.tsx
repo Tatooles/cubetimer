@@ -6,6 +6,7 @@ import type { CrossRating, CrossSettings } from "./types";
 
 type CrossTrainerProps = {
   settings: CrossSettings;
+  shortcutsDisabled?: boolean;
   onRate: (attempt: {
     scramble: string;
     solution: string[];
@@ -40,7 +41,7 @@ function shouldIgnoreGlobalShortcut(target: EventTarget | null): boolean {
   return ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
 }
 
-export function CrossTrainer({ settings, onRate }: CrossTrainerProps) {
+export function CrossTrainer({ settings, shortcutsDisabled = false, onRate }: CrossTrainerProps) {
   const trainerRef = useRef<HTMLElement | null>(null);
   const [scramble, setScramble] = useState(() => newScramble(settings.shortScramble));
   const [flagged, setFlagged] = useState(false);
@@ -114,6 +115,7 @@ export function CrossTrainer({ settings, onRate }: CrossTrainerProps) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (
+        shortcutsDisabled ||
         shouldIgnoreGlobalShortcut(event.target) ||
         (document.activeElement &&
           document.activeElement !== document.body &&
