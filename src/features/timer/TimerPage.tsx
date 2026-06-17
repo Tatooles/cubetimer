@@ -28,6 +28,7 @@ import { useTimerController } from "./useTimerController";
 import { copyTextToClipboard } from "../../shared/clipboard/copyTextToClipboard";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "../../shared/components/Sheet";
 import { readJson, writeJson } from "../../shared/storage/localStorageStore";
+import { TrainingPage } from "../training/TrainingPage";
 
 type AppSection = "timer" | "training";
 
@@ -453,9 +454,7 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
 
         <main className="min-w-0 overflow-hidden md:col-start-2">
           {activeSection === "training" ? (
-            <section className="flex h-full items-center justify-center text-zinc-500">
-              Training
-            </section>
+            <TrainingPage />
           ) : (
             <div className="flex h-full flex-col">
               <ScrambleBar
