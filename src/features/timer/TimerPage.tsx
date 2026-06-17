@@ -159,6 +159,13 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
         return;
       }
 
+      if (section === "training") {
+        setActiveSheet(null);
+        setSettingsOpen(false);
+        setShortcutsOpen(false);
+        setSelectedSolveId(null);
+      }
+
       onSectionChange?.(section);
     },
     [onSectionChange, sectionSwitchLocked],
@@ -382,7 +389,7 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
                   type="button"
                   onClick={() => handleSectionChange("training")}
                   disabled={sectionSwitchLocked}
-                  className={`relative px-2 text-sm font-medium md:px-4 ${activeSection === "training" ? "text-indigo-200" : "text-zinc-500 hover:text-zinc-200"}`}
+                  className={`relative px-2 text-sm font-medium md:px-4 ${activeSection === "training" ? "text-indigo-200" : "text-zinc-500 hover:text-zinc-200"} disabled:opacity-40 disabled:hover:text-zinc-500`}
                 >
                   Training
                   {activeSection === "training" ? (

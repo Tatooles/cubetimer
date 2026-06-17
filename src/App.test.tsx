@@ -70,8 +70,18 @@ describe("TimerPage header layout", () => {
     expect(timerPageSource).toContain('const sectionSwitchLocked = timerStage !== "idle";');
     expect(timerPageSource).toContain('if (sectionSwitchLocked && section === "training")');
     expect(timerPageSource).toContain("disabled={sectionSwitchLocked}");
+    expect(timerPageSource).toContain("disabled:opacity-40");
+    expect(timerPageSource).toContain("disabled:hover:text-zinc-500");
     expect(timerPageSource).toContain("onSectionChange?.(section)");
     expect(timerPageSource).toContain('activeSection === "training" ? (');
+  });
+
+  test("clears timer-only transient ui before switching to training", () => {
+    expect(timerPageSource).toContain('if (section === "training") {');
+    expect(timerPageSource).toContain("setActiveSheet(null);");
+    expect(timerPageSource).toContain("setSettingsOpen(false);");
+    expect(timerPageSource).toContain("setShortcutsOpen(false);");
+    expect(timerPageSource).toContain("setSelectedSolveId(null);");
   });
 
   test("guards space keyup timer release when training is active", () => {
