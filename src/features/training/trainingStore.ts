@@ -109,6 +109,30 @@ function sanitizeCrossSettings(value: unknown, fallback: CrossSettings): CrossSe
   };
 }
 
+function updateCrossSettingsValue(
+  current: CrossSettings,
+  patch: Partial<CrossSettings>,
+): CrossSettings {
+  return {
+    color:
+      typeof patch.color === "string" && CROSS_COLORS.includes(patch.color as CrossColor)
+        ? (patch.color as CrossColor)
+        : current.color,
+    moveTarget:
+      typeof patch.moveTarget === "number" && Number.isFinite(patch.moveTarget)
+        ? Math.min(12, Math.max(4, Math.round(patch.moveTarget)))
+        : current.moveTarget,
+    xcross: typeof patch.xcross === "boolean" ? patch.xcross : current.xcross,
+    shortScramble:
+      typeof patch.shortScramble === "boolean" ? patch.shortScramble : current.shortScramble,
+    inspection: typeof patch.inspection === "boolean" ? patch.inspection : current.inspection,
+    revealMode:
+      patch.revealMode === "one" || patch.revealMode === "all"
+        ? patch.revealMode
+        : current.revealMode,
+  };
+}
+
 function sanitizeAlgorithmSubsets(
   value: unknown,
   fallback: TrainingState["algorithms"]["settings"]["subsets"],
@@ -237,20 +261,11 @@ export function updateCrossSettings(
   state: TrainingState,
   patch: Partial<CrossSettings>,
 ): TrainingState {
-  const fallback = defaultTrainingState();
-
   return {
     ...state,
     cross: {
       ...state.cross,
-      settings: {
-        ...fallback.cross.settings,
-        ...state.cross.settings,
-        ...sanitizeCrossSettings(patch, {
-          ...fallback.cross.settings,
-          ...state.cross.settings,
-        }),
-      },
+      settings: updateCrossSettingsValue(state.cross.settings, patch),
     },
   };
 }
@@ -263,21 +278,22 @@ export function updateAlgorithmSettings(
 ): TrainingState {
   const fallback = defaultTrainingState();
   const currentSettings = state.algorithms.settings;
-  const nextSubsetsSource = patch.subsets ?? {};
+  const nextActiveSetId = isAlgorithmSetId(patch.activeSetId)
+    ? patch.activeSetId
+    : (currentSettings.activeSetId ?? fallback.algorithms.settings.activeSetId);
+  const nextMode = isAlgorithmMode(patch.mode) ? patch.mode : (currentSettings.mode ?? "drill");
+  const nextSubsets = patch.subsets
+    ? sanitizeAlgorithmSubsets(patch.subsets, currentSettings.subsets)
+    : currentSettings.subsets;
 
   return {
     ...state,
     algorithms: {
       ...state.algorithms,
       settings: {
-        activeSetId: isAlgorithmSetId(patch.activeSetId)
-          ? patch.activeSetId
-          : (currentSettings.activeSetId ?? fallback.algorithms.settings.activeSetId),
-        mode: isAlgorithmMode(patch.mode) ? patch.mode : (currentSettings.mode ?? "drill"),
-        subsets: sanitizeAlgorithmSubsets(nextSubsetsSource, {
-          ...fallback.algorithms.settings.subsets,
-          ...currentSettings.subsets,
-        }),
+        activeSetId: nextActiveSetId,
+        mode: nextMode,
+        subsets: nextSubsets,
       },
     },
   };

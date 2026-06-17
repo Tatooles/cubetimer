@@ -218,6 +218,36 @@ describe("training store", () => {
     expect(next.cross).not.toBe(base.cross);
   });
 
+  test("preserves omitted cross settings when patching color", () => {
+    const base = updateCrossSettings(defaultTrainingState(), {
+      xcross: true,
+      shortScramble: true,
+      inspection: true,
+      revealMode: "all",
+    });
+
+    const next = updateCrossSettings(base, {
+      color: "red",
+    });
+
+    expect(base.cross.settings).toEqual({
+      color: "white",
+      moveTarget: 8,
+      xcross: true,
+      shortScramble: true,
+      inspection: true,
+      revealMode: "all",
+    });
+    expect(next.cross.settings).toEqual({
+      color: "red",
+      moveTarget: 8,
+      xcross: true,
+      shortScramble: true,
+      inspection: true,
+      revealMode: "all",
+    });
+  });
+
   test("updates algorithm settings and subsets immutably", () => {
     const base = defaultTrainingState();
     const snapshot = JSON.parse(JSON.stringify(base)) as typeof base;
@@ -262,6 +292,49 @@ describe("training store", () => {
     });
     expect(next.algorithms.settings).not.toBe(baseWithCustomSubset.algorithms.settings);
     expect(next.algorithms).not.toBe(baseWithCustomSubset.algorithms);
+  });
+
+  test("preserves omitted algorithm settings when patching subsets", () => {
+    const base = updateAlgorithmSettings(defaultTrainingState(), {
+      activeSetId: "COLL",
+      mode: "subset",
+      subsets: {
+        PLL: ["T"],
+      },
+    });
+
+    const next = updateAlgorithmSettings(base, {
+      subsets: {
+        PLL: ["Ua"],
+      },
+    });
+
+    expect(base.algorithms.settings).toEqual({
+      activeSetId: "COLL",
+      mode: "subset",
+      subsets: {
+        OLL: [],
+        PLL: ["T"],
+        COLL: [],
+        ZBLL: [],
+        LSLL: [],
+        CLL2: [],
+        PLL4: [],
+      },
+    });
+    expect(next.algorithms.settings).toEqual({
+      activeSetId: "COLL",
+      mode: "subset",
+      subsets: {
+        OLL: [],
+        PLL: ["Ua"],
+        COLL: [],
+        ZBLL: [],
+        LSLL: [],
+        CLL2: [],
+        PLL4: [],
+      },
+    });
   });
 
   test("caps cross attempt history at 100 and keeps previous state immutable", () => {
