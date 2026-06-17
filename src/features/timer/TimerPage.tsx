@@ -381,7 +381,7 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
                 <button
                   type="button"
                   onClick={() => handleSectionChange("training")}
-                  disabled={timerLocked}
+                  disabled={sectionSwitchLocked}
                   className={`relative px-2 text-sm font-medium md:px-4 ${activeSection === "training" ? "text-indigo-200" : "text-zinc-500 hover:text-zinc-200"}`}
                 >
                   Training

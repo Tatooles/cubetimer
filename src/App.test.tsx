@@ -69,6 +69,7 @@ describe("TimerPage header layout", () => {
     expect(timerPageSource).toContain('const timerLocked = timerStage === "running";');
     expect(timerPageSource).toContain('const sectionSwitchLocked = timerStage !== "idle";');
     expect(timerPageSource).toContain('if (sectionSwitchLocked && section === "training")');
+    expect(timerPageSource).toContain("disabled={sectionSwitchLocked}");
     expect(timerPageSource).toContain("onSectionChange?.(section)");
     expect(timerPageSource).toContain('activeSection === "training" ? (');
   });
