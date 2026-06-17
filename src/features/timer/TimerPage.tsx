@@ -378,7 +378,7 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
               </span>
             </div>
             {onSectionChange ? (
-              <nav className="flex h-full min-w-0 items-stretch">
+              <nav className="hidden h-full min-w-0 items-stretch md:flex">
                 <button
                   type="button"
                   onClick={() => handleSectionChange("timer")}
@@ -401,6 +401,18 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
                   ) : null}
                 </button>
               </nav>
+            ) : null}
+            {onSectionChange ? (
+              <button
+                type="button"
+                onClick={() =>
+                  handleSectionChange(activeSection === "timer" ? "training" : "timer")
+                }
+                disabled={sectionSwitchLocked && activeSection === "timer"}
+                className="shrink-0 rounded-md border border-white/[0.07] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 disabled:opacity-40 md:hidden"
+              >
+                {activeSection === "timer" ? "Train" : "Timer"}
+              </button>
             ) : null}
           </div>
           <div className="min-w-0 justify-self-center md:hidden">

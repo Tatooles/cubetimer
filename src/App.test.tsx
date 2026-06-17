@@ -77,6 +77,14 @@ describe("TimerPage header layout", () => {
     expect(timerPageSource).toContain("justify-self-end");
   });
 
+  test("keeps a compact mobile Training switch visible beside the logo", () => {
+    expect(timerPageSource).toContain('activeSection === "timer" ? "Train" : "Timer"');
+    expect(timerPageSource).toContain("md:hidden");
+    expect(timerPageSource).toContain(
+      'handleSectionChange(activeSection === "timer" ? "training" : "timer")',
+    );
+  });
+
   test("guards training tab switches while the timer is locked", () => {
     expect(timerPageSource).toContain('const timerLocked = timerStage === "running";');
     expect(timerPageSource).toContain('const sectionSwitchLocked = timerStage !== "idle";');
