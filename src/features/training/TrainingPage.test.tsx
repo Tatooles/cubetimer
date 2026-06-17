@@ -7,6 +7,8 @@ import { TimerPage } from "../timer/TimerPage";
 import { TRAINING_STORAGE_KEY } from "./trainingStore";
 import { TrainingPage } from "./TrainingPage";
 import trainingPageSource from "./TrainingPage.tsx?raw";
+import crossSettingsSource from "./CrossSettings.tsx?raw";
+import crossTrainerSource from "./CrossTrainer.tsx?raw";
 import trainingMobileNavSource from "./TrainingMobileNav.tsx?raw";
 import timerPageSource from "../timer/TimerPage.tsx?raw";
 
@@ -88,8 +90,21 @@ describe("TrainingPage shell composition", () => {
   });
 
   test("renders placeholder trainer content until concrete trainers land", () => {
-    expect(trainingPageSource).toContain("Cross trainer");
+    expect(trainingPageSource).toContain("<CrossTrainer");
+    expect(trainingPageSource).toContain("<CrossSettings");
     expect(trainingPageSource).toContain("Algorithm trainer");
+  });
+
+  test("cross trainer source exposes reveal, rating, and inspection controls", () => {
+    expect(crossTrainerSource).toContain("Reveal next move");
+    expect(crossTrainerSource).toContain("How did that go?");
+    expect(crossTrainerSource).toContain("Inspect");
+  });
+
+  test("cross settings source exposes color, target, and xcross controls", () => {
+    expect(crossSettingsSource).toContain("Cross color");
+    expect(crossSettingsSource).toContain("Move target");
+    expect(crossSettingsSource).toContain("XCross practice");
   });
 });
 
@@ -126,7 +141,22 @@ describe("TrainingPage interactions", () => {
     await click(button("Settings"));
 
     expect(pageText()).toContain("Training settings");
-    expect(pageText()).toContain("white cross, 8 move target");
+    expect(pageText()).toContain("Cross color");
+    expect(pageText()).toContain("Move target");
+  });
+
+  test("rating a cross attempt records it in sidebar history", async () => {
+    await render(<TrainingPage />);
+
+    expect(pageText()).toContain("Cross attempts");
+    expect(pageText()).toContain("saved attempts");
+    expect(pageText()).toContain("0");
+
+    await click(button("Good"));
+
+    expect(pageText()).toContain("1");
+    expect(pageText()).toContain("#1");
+    expect(pageText()).toContain("good");
   });
 
   test("does not expose graph or session controls in training mobile nav", async () => {

@@ -17,6 +17,7 @@ export function TrainingSidebar({ state, activeTrainer, className = "" }: Traini
   const crossCount = state.cross.history.length;
   const rotationCount = algorithmRotationCount(state);
   const showingCross = activeTrainer === "cross";
+  const latestCrossAttempts = state.cross.history.slice(-8).reverse();
 
   return (
     <aside className={`flex flex-col overflow-y-auto border-white/[0.07] ${className}`}>
@@ -42,6 +43,41 @@ export function TrainingSidebar({ state, activeTrainer, className = "" }: Traini
           </p>
         </div>
       </section>
+
+      {showingCross ? (
+        <section className="px-5 py-4">
+          <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
+            Latest
+          </div>
+          <div className="space-y-2">
+            {latestCrossAttempts.length > 0 ? (
+              latestCrossAttempts.map((attempt) => {
+                const attemptNumber = state.cross.history.indexOf(attempt) + 1;
+
+                return (
+                  <div
+                    key={attempt.id}
+                    className="rounded-md border border-white/[0.07] bg-white/[0.02] px-3 py-2"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-mono text-xs text-zinc-500">#{attemptNumber}</span>
+                      <span className="text-xs font-medium capitalize text-zinc-200">
+                        {attempt.rating}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-3 text-xs text-zinc-600">
+                      <span>{attempt.moveCount} moves</span>
+                      {attempt.flagged ? <span className="text-amber-200">Flagged</span> : null}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-sm text-zinc-600">No cross attempts yet.</p>
+            )}
+          </div>
+        </section>
+      ) : null}
     </aside>
   );
 }
