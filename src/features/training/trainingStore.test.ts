@@ -5,6 +5,7 @@ import {
   loadTrainingState,
   recordCrossAttempt,
   recordAlgorithmTime,
+  clearCrossHistory,
   saveTrainingState,
   updateAlgorithmSettings,
   updateCrossSettings,
@@ -398,6 +399,26 @@ describe("training store", () => {
     expect(next.cross.history[0].id).toBe("cross-1");
     expect(next.cross.history[99].id).toBe("cross-100");
     expect(next.cross.history).not.toBe(base.cross.history);
+  });
+
+  test("clears cross attempt history without replacing settings", () => {
+    const base = recordCrossAttempt(defaultTrainingState(), {
+      id: "cross-1",
+      scramble: "R U R'",
+      solution: ["D", "L'"],
+      moveCount: 2,
+      rating: "good",
+      flagged: true,
+      xcross: false,
+      timestamp: 1,
+    });
+
+    const next = clearCrossHistory(base);
+
+    expect(base.cross.history).toHaveLength(1);
+    expect(next.cross.history).toEqual([]);
+    expect(next.cross.settings).toBe(base.cross.settings);
+    expect(next.cross).not.toBe(base.cross);
   });
 
   test("records algorithm times by case with timestamps", () => {

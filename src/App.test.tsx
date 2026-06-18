@@ -64,6 +64,15 @@ describe("TimerPage header layout", () => {
     expect(timerPageSource).not.toContain("onEventChange={onEventChange}");
   });
 
+  test("replaces scramble selectors with training trainer controls in training mode", () => {
+    expect(timerPageSource).toContain("import { TrainingModeSwitch }");
+    expect(timerPageSource).toContain("activeTrainingMode");
+    expect(timerPageSource).toContain('activeSection === "timer" ? (');
+    expect(timerPageSource).toContain('activeSection === "training" ? (');
+    expect(timerPageSource).toContain("<TrainingModeSwitch");
+    expect(timerPageSource).toContain("onTrainerChange={setActiveTrainingMode}");
+  });
+
   test("fills the center grid column with the desktop selector", () => {
     expect(timerPageSource).toContain("headerDensityClass");
     expect(timerPageSource).toContain("md:col-start-2 md:row-start-1");

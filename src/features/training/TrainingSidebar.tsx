@@ -8,6 +8,7 @@ type TrainingSidebarProps = {
   state: TrainingState;
   activeTrainer: TrainingMode;
   className?: string;
+  onClearCrossHistory?: () => void;
 };
 
 function activeAlgorithmCases(state: TrainingState) {
@@ -23,7 +24,12 @@ function activeAlgorithmCases(state: TrainingState) {
   return { set, cases };
 }
 
-export function TrainingSidebar({ state, activeTrainer, className = "" }: TrainingSidebarProps) {
+export function TrainingSidebar({
+  state,
+  activeTrainer,
+  className = "",
+  onClearCrossHistory,
+}: TrainingSidebarProps) {
   const crossCount = state.cross.history.length;
   const algorithmRotation = activeAlgorithmCases(state);
   const showingCross = activeTrainer === "cross";
@@ -59,8 +65,19 @@ export function TrainingSidebar({ state, activeTrainer, className = "" }: Traini
 
       {showingCross ? (
         <section className="px-5 py-4">
-          <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
-            Latest
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
+              Latest
+            </div>
+            {crossCount > 0 ? (
+              <button
+                type="button"
+                onClick={onClearCrossHistory}
+                className="rounded border border-white/[0.07] px-2 py-1 text-[10px] font-medium text-zinc-500 hover:border-white/15 hover:text-zinc-200"
+              >
+                Clear
+              </button>
+            ) : null}
           </div>
           <div className="space-y-2">
             {latestCrossAttempts.length > 0 ? (
@@ -79,6 +96,9 @@ export function TrainingSidebar({ state, activeTrainer, className = "" }: Traini
                     <span>{attempt.moveCount} moves</span>
                     {attempt.flagged ? <span className="text-amber-200">Flagged</span> : null}
                   </div>
+                  <p className="mt-2 break-words font-mono text-[11px] leading-relaxed text-zinc-500">
+                    {attempt.scramble}
+                  </p>
                 </div>
               ))
             ) : (

@@ -4,6 +4,8 @@ import type { TrainingMode } from "./types";
 type TrainingHeaderProps = {
   activeTrainer: TrainingMode;
   onTrainerChange: (trainer: TrainingMode) => void;
+  className?: string;
+  compact?: boolean;
 };
 
 const TRAINERS: Array<{ value: TrainingMode; label: string; icon: typeof Crosshair }> = [
@@ -11,36 +13,36 @@ const TRAINERS: Array<{ value: TrainingMode; label: string; icon: typeof Crossha
   { value: "algorithms", label: "Algorithms", icon: Brain },
 ];
 
-export function TrainingHeader({ activeTrainer, onTrainerChange }: TrainingHeaderProps) {
+export function TrainingModeSwitch({
+  activeTrainer,
+  onTrainerChange,
+  className = "",
+  compact = false,
+}: TrainingHeaderProps) {
   return (
-    <header className="flex min-h-14 items-center justify-between gap-4 border-b border-white/[0.07] px-4 md:px-6">
-      <div className="min-w-0">
-        <h1 className="text-sm font-semibold text-zinc-100">Training</h1>
-        <p className="mt-0.5 text-xs text-zinc-600">Practice shell</p>
-      </div>
-      <div
-        aria-label="Training mode"
-        className="inline-flex shrink-0 rounded-md border border-white/10 bg-black p-0.5"
-      >
-        {TRAINERS.map((trainer) => {
-          const Icon = trainer.icon;
-          const selected = trainer.value === activeTrainer;
+    <div
+      aria-label="Training mode"
+      className={`inline-flex min-w-0 shrink-0 rounded-md border border-white/10 bg-black p-0.5 ${className}`}
+    >
+      {TRAINERS.map((trainer) => {
+        const Icon = trainer.icon;
+        const selected = trainer.value === activeTrainer;
+        const label = compact && trainer.value === "algorithms" ? "Algs" : trainer.label;
 
-          return (
-            <button
-              key={trainer.value}
-              type="button"
-              onClick={() => onTrainerChange(trainer.value)}
-              className={`inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium transition ${
-                selected ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-200"
-              }`}
-            >
-              <Icon aria-hidden="true" size={14} strokeWidth={2} />
-              <span>{trainer.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </header>
+        return (
+          <button
+            key={trainer.value}
+            type="button"
+            onClick={() => onTrainerChange(trainer.value)}
+            className={`inline-flex h-8 items-center rounded text-xs font-medium transition ${
+              selected ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-200"
+            } ${compact ? "gap-1 px-1.5" : "gap-1.5 px-2.5"}`}
+          >
+            {compact ? null : <Icon aria-hidden="true" size={14} strokeWidth={2} />}
+            <span>{label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

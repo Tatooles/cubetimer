@@ -8,13 +8,13 @@ import { CrossTrainer } from "./CrossTrainer.tsx";
 import { SubsetEditor } from "./SubsetEditor";
 import {
   loadTrainingState,
+  clearCrossHistory,
   recordAlgorithmTime,
   recordCrossAttempt,
   saveTrainingState,
   updateAlgorithmSettings,
   updateCrossSettings,
 } from "./trainingStore";
-import { TrainingHeader } from "./TrainingHeader";
 import { TrainingMobileNav, type TrainingMobilePanel } from "./TrainingMobileNav";
 import { TrainingSidebar } from "./TrainingSidebar";
 import type {
@@ -24,6 +24,10 @@ import type {
   TrainingMode,
   TrainingState,
 } from "./types";
+
+type TrainingPageProps = {
+  activeTrainer: TrainingMode;
+};
 
 let fallbackAttemptIdCounter = 0;
 
@@ -52,7 +56,7 @@ function shouldIgnoreGlobalShortcut(target: EventTarget | null): boolean {
   return ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
 }
 
-export function TrainingPage() {
+export function TrainingPage({ activeTrainer }: TrainingPageProps) {
   const [state, setState] = useState<TrainingState>(() => loadTrainingState());
   const [activeMobilePanel, setActiveMobilePanel] = useState<TrainingMobilePanel>(null);
   const [editingSubsetSetId, setEditingSubsetSetId] = useState<AlgorithmSetId | null>(null);
@@ -65,6 +69,13 @@ export function TrainingPage() {
   useEffect(() => {
     saveTrainingState(state);
   }, [state]);
+
+  useEffect(() => {
+    setActiveMobilePanel(null);
+    setState((current) =>
+      current.activeTrainer === activeTrainer ? current : { ...current, activeTrainer },
+    );
+  }, [activeTrainer]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -90,11 +101,6 @@ export function TrainingPage() {
     window.addEventListener("keydown", onKeyDown, { capture: true });
     return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [activeMobilePanel, editingSubsetSetId]);
-
-  function setActiveTrainer(activeTrainer: TrainingMode) {
-    setActiveMobilePanel(null);
-    setState((current) => ({ ...current, activeTrainer }));
-  }
 
   function updateCrossSettingsPatch(patch: Partial<CrossSettingsValue>) {
     setState((current) => updateCrossSettings(current, patch));
@@ -166,8 +172,12 @@ export function TrainingPage() {
     );
   }
 
+  function clearCrossAttemptHistory() {
+    setState((current) => clearCrossHistory(current));
+  }
+
   function renderSettingsRail() {
-    return state.activeTrainer === "cross" ? (
+    return activeTrainer === "cross" ? (
       <CrossSettings settings={state.cross.settings} onChange={updateCrossSettingsPatch} />
     ) : (
       <AlgorithmSettings
@@ -179,19 +189,16 @@ export function TrainingPage() {
   }
 
   return (
-    <section className="grid h-full min-h-0 min-w-0 grid-rows-[56px_1fr_64px] overflow-hidden bg-[#0a0a0b] text-zinc-100 md:grid-cols-[264px_1fr_296px] md:grid-rows-[56px_1fr]">
-      <div className="col-span-full min-w-0 overflow-hidden">
-        <TrainingHeader activeTrainer={state.activeTrainer} onTrainerChange={setActiveTrainer} />
-      </div>
-
+    <section className="grid h-full min-h-0 min-w-0 grid-rows-[1fr_64px] overflow-hidden bg-[#0a0a0b] text-zinc-100 md:grid-cols-[264px_1fr_296px] md:grid-rows-[1fr]">
       <TrainingSidebar
         state={state}
-        activeTrainer={state.activeTrainer}
-        className="hidden md:col-start-1 md:row-start-2 md:flex md:border-r"
+        activeTrainer={activeTrainer}
+        onClearCrossHistory={clearCrossAttemptHistory}
+        className="hidden md:col-start-1 md:row-start-1 md:flex md:border-r"
       />
 
-      <main className="min-h-0 min-w-0 overflow-hidden md:col-start-2 md:row-start-2">
-        {state.activeTrainer === "cross" ? (
+      <main className="min-h-0 min-w-0 overflow-hidden md:col-start-2 md:row-start-1">
+        {activeTrainer === "cross" ? (
           <CrossTrainer
             settings={state.cross.settings}
             onRate={recordRatedCrossAttempt}
@@ -207,7 +214,7 @@ export function TrainingPage() {
         )}
       </main>
 
-      <aside className="hidden min-h-0 min-w-0 overflow-y-auto border-l border-white/[0.07] md:col-start-3 md:row-start-2 md:block">
+      <aside className="hidden min-h-0 min-w-0 overflow-y-auto border-l border-white/[0.07] md:col-start-3 md:row-start-1 md:block">
         {renderSettingsRail()}
       </aside>
 
@@ -234,7 +241,8 @@ export function TrainingPage() {
           </SheetDescription>
           <TrainingSidebar
             state={state}
-            activeTrainer={state.activeTrainer}
+            activeTrainer={activeTrainer}
+            onClearCrossHistory={clearCrossAttemptHistory}
             className="h-full min-w-0 overflow-y-auto"
           />
         </SheetContent>

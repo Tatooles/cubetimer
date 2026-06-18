@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { TimerPage } from "../timer/TimerPage";
-import { defaultTrainingState, TRAINING_STORAGE_KEY } from "./trainingStore";
+import { defaultTrainingState, loadTrainingState, TRAINING_STORAGE_KEY } from "./trainingStore";
 import { TrainingPage } from "./TrainingPage";
+import { TrainingModeSwitch } from "./TrainingHeader";
 import { TrainingSidebar } from "./TrainingSidebar";
 import algorithmSettingsSource from "./AlgorithmSettings.tsx?raw";
 import algorithmTrainerSource from "./AlgorithmTrainer.tsx?raw";
@@ -15,6 +16,7 @@ import crossSettingsSource from "./CrossSettings.tsx?raw";
 import crossTrainerSource from "./CrossTrainer.tsx?raw";
 import trainingMobileNavSource from "./TrainingMobileNav.tsx?raw";
 import timerPageSource from "../timer/TimerPage.tsx?raw";
+import type { TrainingMode } from "./types";
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean;
@@ -79,6 +81,19 @@ async function click(element: HTMLElement) {
   });
 }
 
+function TrainingPageHarness() {
+  const [activeTrainer, setActiveTrainer] = useState<TrainingMode>(
+    () => loadTrainingState().activeTrainer,
+  );
+
+  return (
+    <>
+      <TrainingModeSwitch activeTrainer={activeTrainer} onTrainerChange={setActiveTrainer} />
+      <TrainingPage activeTrainer={activeTrainer} />
+    </>
+  );
+}
+
 beforeEach(() => {
   localStorage.clear();
   container = document.createElement("div");
@@ -97,7 +112,7 @@ describe("TrainingPage shell composition", () => {
   test("composes the shell around persisted training state", () => {
     expect(trainingPageSource).toContain("loadTrainingState()");
     expect(trainingPageSource).toContain("saveTrainingState(state)");
-    expect(trainingPageSource).toContain("<TrainingHeader");
+    expect(trainingPageSource).not.toContain("<TrainingHeader");
     expect(trainingPageSource).toContain("<TrainingSidebar");
     expect(trainingPageSource).toContain("activeMobilePanel");
     expect(trainingPageSource).toContain("history");
@@ -105,9 +120,15 @@ describe("TrainingPage shell composition", () => {
   });
 
   test("clears the active mobile panel when switching trainers", () => {
-    expect(trainingPageSource).toContain("function setActiveTrainer");
+    expect(trainingPageSource).toContain("useEffect(() =>");
     expect(trainingPageSource).toContain("setActiveMobilePanel(null)");
     expect(trainingPageSource).toContain("activeTrainer:");
+  });
+
+  test("does not render the old training practice shell header", () => {
+    expect(trainingPageSource).not.toContain("Practice shell");
+    expect(trainingPageSource).not.toContain("<h1");
+    expect(trainingPageSource).not.toContain("TrainingHeader");
   });
 
   test("renders placeholder trainer content until concrete trainers land", () => {
@@ -170,7 +191,7 @@ describe("TrainingPage shell composition", () => {
 
 describe("TrainingPage interactions", () => {
   test("starts on Cross trainer and persists Algorithm trainer selection", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     expect(pageText()).toContain("Cross trainer");
 
@@ -179,13 +200,13 @@ describe("TrainingPage interactions", () => {
     expect(pageText()).toContain("Algorithm trainer");
     expect(localStorage.getItem(TRAINING_STORAGE_KEY)).toContain('"activeTrainer":"algorithms"');
 
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     expect(pageText()).toContain("Algorithm trainer");
   });
 
   test("renders algorithm case controls and advances cases", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     await click(button("Algorithms"));
 
@@ -203,7 +224,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("ignores global space shortcuts from algorithm settings controls", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     await click(button("Algorithms"));
     await click(button("Settings"));
@@ -243,7 +264,7 @@ describe("TrainingPage interactions", () => {
     vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
 
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
     await click(button("Algorithms"));
 
     const timerSurface = testId("algorithm-timer-surface");
@@ -270,7 +291,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("opens algorithm settings and saves a subset selection", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     await click(button("Algorithms"));
     await click(button("Settings"));
@@ -293,7 +314,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("saves subset changes to the set that opened the editor", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     await click(button("Algorithms"));
     await click(button("Settings"));
@@ -334,7 +355,7 @@ describe("TrainingPage interactions", () => {
     vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
 
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     await click(button("Algorithms"));
     await click(button("Settings"));
@@ -376,7 +397,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("opens and toggles history and settings mobile panels", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     expect(pageText()).not.toContain("Training history");
 
@@ -397,7 +418,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("escape closes training mobile panels and subset editor", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     await click(button("Settings"));
     expect(sheetContent()?.textContent).toContain("Training settings");
@@ -421,7 +442,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("escape from training form controls does not close panels", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     await click(button("Algorithms"));
     await click(button("Settings"));
@@ -442,7 +463,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("cross keyboard shortcuts reveal, advance, flag, and ignore controls", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     expect(pageText()).toContain("Reveal the solution when ready.");
 
@@ -483,7 +504,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("cross keyboard shortcuts are disabled behind mobile panels", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     const initialScramble = testId("cross-scramble").textContent;
 
@@ -512,7 +533,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("cross reveal-all shortcut exposes every visible move", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "r" }));
@@ -525,7 +546,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("cross reveal buttons are explicit instead of using a persistent reveal mode", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     await click(button("Reveal next move"));
 
@@ -543,7 +564,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("rating a cross attempt records it in sidebar history", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     expect(pageText()).toContain("Cross attempts");
     expect(pageText()).toContain("saved attempts");
@@ -554,6 +575,27 @@ describe("TrainingPage interactions", () => {
     expect(pageText()).toContain("1");
     expect(pageText()).toContain("#1");
     expect(pageText()).toContain("good");
+  });
+
+  test("cross history shows scrambles and can be cleared", async () => {
+    await render(<TrainingPageHarness />);
+
+    const scramble = testId("cross-scramble").textContent?.trim();
+    if (!scramble) {
+      throw new Error("Cross scramble not found");
+    }
+
+    await click(button("Good"));
+
+    expect(pageText()).toContain(scramble);
+    expect(pageText()).toContain("#1");
+    expect(pageText()).toContain("1");
+
+    await click(button("Clear"));
+
+    expect(pageText()).toContain("No cross attempts yet.");
+    expect(pageText()).not.toContain(scramble);
+    expect(localStorage.getItem(TRAINING_STORAGE_KEY)).toContain('"history":[]');
   });
 
   test("uses unique fallback ids when randomUUID is unavailable", async () => {
@@ -567,7 +609,7 @@ describe("TrainingPage interactions", () => {
     Date.now = () => 123_456;
 
     try {
-      await render(<TrainingPage />);
+      await render(<TrainingPageHarness />);
 
       await click(button("Good"));
       await click(button("Good"));
@@ -588,7 +630,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("changing short scramble resets cross trainer local state", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     await click(button("Flag"));
     await click(button("Reveal next move"));
@@ -605,7 +647,7 @@ describe("TrainingPage interactions", () => {
   });
 
   test("does not expose graph or session controls in training mobile nav", async () => {
-    await render(<TrainingPage />);
+    await render(<TrainingPageHarness />);
 
     const nav = container.querySelector('nav[aria-label="Training"]');
 

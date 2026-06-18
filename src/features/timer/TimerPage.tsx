@@ -29,6 +29,9 @@ import { copyTextToClipboard } from "../../shared/clipboard/copyTextToClipboard"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "../../shared/components/Sheet";
 import { readJson, writeJson } from "../../shared/storage/localStorageStore";
 import { TrainingPage } from "../training/TrainingPage";
+import { TrainingModeSwitch } from "../training/TrainingHeader";
+import { loadTrainingState } from "../training/trainingStore";
+import type { TrainingMode } from "../training/types";
 
 type AppSection = "timer" | "training";
 
@@ -80,6 +83,9 @@ function initialAppState(): AppState {
 
 export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPageProps = {}) {
   const [state, setState] = useState<AppState>(initialAppState);
+  const [activeTrainingMode, setActiveTrainingMode] = useState<TrainingMode>(
+    () => loadTrainingState().activeTrainer,
+  );
   const [scrambleError, setScrambleError] = useState<string | null>(null);
   const [scrambleLoading, setScrambleLoading] = useState(false);
   const [selectedSolveId, setSelectedSolveId] = useState<string | null>(null);
@@ -417,22 +423,39 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
             ) : null}
           </div>
           <div className="min-w-0 justify-self-center md:hidden">
-            <EventSelector
-              eventId={state.eventId}
-              disabled={timerLocked}
-              mode="select"
-              onEventChange={setEvent}
-            />
-          </div>
-          <div className="hidden min-w-0 md:col-start-2 md:row-start-1 md:flex">
-            <div className="w-full">
+            {activeSection === "timer" ? (
               <EventSelector
                 eventId={state.eventId}
                 disabled={timerLocked}
-                mode="tabs"
+                mode="select"
                 onEventChange={setEvent}
               />
-            </div>
+            ) : null}
+            {activeSection === "training" ? (
+              <TrainingModeSwitch
+                activeTrainer={activeTrainingMode}
+                onTrainerChange={setActiveTrainingMode}
+                compact
+              />
+            ) : null}
+          </div>
+          <div className="hidden min-w-0 md:col-start-2 md:row-start-1 md:flex">
+            {activeSection === "timer" ? (
+              <div className="w-full">
+                <EventSelector
+                  eventId={state.eventId}
+                  disabled={timerLocked}
+                  mode="tabs"
+                  onEventChange={setEvent}
+                />
+              </div>
+            ) : null}
+            {activeSection === "training" ? (
+              <TrainingModeSwitch
+                activeTrainer={activeTrainingMode}
+                onTrainerChange={setActiveTrainingMode}
+              />
+            ) : null}
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 justify-self-end md:col-start-3 md:row-start-1 md:px-6">
             <button type="button" onClick={() => setShortcutsOpen(true)} className="topbar-button">
@@ -476,7 +499,7 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
           }`}
         >
           {activeSection === "training" ? (
-            <TrainingPage />
+            <TrainingPage activeTrainer={activeTrainingMode} />
           ) : (
             <div className="flex h-full flex-col">
               <ScrambleBar

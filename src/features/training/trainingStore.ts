@@ -344,6 +344,16 @@ export function recordCrossAttempt(state: TrainingState, attempt: CrossAttempt):
   };
 }
 
+export function clearCrossHistory(state: TrainingState): TrainingState {
+  return {
+    ...state,
+    cross: {
+      ...state.cross,
+      history: [],
+    },
+  };
+}
+
 export function recordAlgorithmTime(
   state: TrainingState,
   setId: AlgorithmSetId,
