@@ -3,12 +3,10 @@ import { generateCrossScramble, mockCrossSolution, toggleCrossFlag } from "./cro
 import type { CrossAttempt, CrossSettings } from "./types";
 
 const settings: CrossSettings = {
-  color: "white",
-  moveTarget: 8,
+  colors: ["white"],
+  moveTarget: 6,
   xcross: false,
   shortScramble: false,
-  inspection: false,
-  revealMode: "one",
 };
 
 function tokens(scramble: string): string[] {
@@ -67,9 +65,19 @@ describe("cross trainer helpers", () => {
   test("returns cross solution moves in the 4 to 8 move training range", () => {
     const solution = mockCrossSolution("R U R' F2 D L2", settings);
 
-    expect(solution.cross.moves.length).toBeGreaterThanOrEqual(4);
-    expect(solution.cross.moves.length).toBeLessThanOrEqual(8);
+    expect(solution.cross.moves.length).toBeGreaterThanOrEqual(3);
+    expect(solution.cross.moves.length).toBeLessThanOrEqual(7);
     expect(solution.cross.solution).toBe(solution.cross.moves.join(" "));
+  });
+
+  test("chooses a mocked cross solution from the selected cross colors", () => {
+    const solution = mockCrossSolution("R U R' F2 D L2", {
+      ...settings,
+      colors: ["white", "yellow", "blue"],
+    });
+
+    expect(["white", "yellow", "blue"]).toContain(solution.cross.color);
+    expect(solution.settings.colors).toEqual(["white", "yellow", "blue"]);
   });
 
   test("includes XCross metadata and keeps XCross length at least cross length", () => {

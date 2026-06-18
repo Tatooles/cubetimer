@@ -191,7 +191,7 @@ describe("training store", () => {
       timestamp: 1,
     });
 
-    expect(state.cross.settings.color).toBe("white");
+    expect(state.cross.settings.colors).toEqual(["white"]);
     expect(state.cross.history).toHaveLength(1);
     expect(state.cross.history[0].flagged).toBe(true);
   });
@@ -201,51 +201,78 @@ describe("training store", () => {
     const snapshot = JSON.parse(JSON.stringify(base)) as typeof base;
 
     const next = updateCrossSettings(base, {
-      color: "red",
-      inspection: true,
+      colors: ["white", "red"],
     });
 
     expect(base).toEqual(snapshot);
     expect(next.cross.settings).toEqual({
-      color: "red",
-      moveTarget: 8,
+      colors: ["white", "red"],
+      moveTarget: 6,
       xcross: false,
       shortScramble: false,
-      inspection: true,
-      revealMode: "one",
     });
     expect(next.cross.settings).not.toBe(base.cross.settings);
     expect(next.cross).not.toBe(base.cross);
   });
 
-  test("preserves omitted cross settings when patching color", () => {
+  test("preserves omitted cross settings when patching colors", () => {
     const base = updateCrossSettings(defaultTrainingState(), {
       xcross: true,
       shortScramble: true,
-      inspection: true,
-      revealMode: "all",
     });
 
     const next = updateCrossSettings(base, {
-      color: "red",
+      colors: ["red", "blue"],
     });
 
     expect(base.cross.settings).toEqual({
-      color: "white",
-      moveTarget: 8,
+      colors: ["white"],
+      moveTarget: 6,
       xcross: true,
       shortScramble: true,
-      inspection: true,
-      revealMode: "all",
     });
     expect(next.cross.settings).toEqual({
-      color: "red",
-      moveTarget: 8,
+      colors: ["red", "blue"],
+      moveTarget: 6,
       xcross: true,
       shortScramble: true,
-      inspection: true,
-      revealMode: "all",
     });
+  });
+
+  test("migrates legacy cross color and clamps basic cross target to 3 through 8", () => {
+    const state = sanitizeTrainingState({
+      cross: {
+        settings: {
+          color: "red",
+          colors: ["bad", "white", "white", "blue"],
+          moveTarget: 12,
+          xcross: true,
+        },
+      },
+    });
+
+    expect(state.cross.settings.colors).toEqual(["white", "blue"]);
+    expect(state.cross.settings.moveTarget).toBe(8);
+
+    const legacyState = sanitizeTrainingState({
+      cross: {
+        settings: {
+          color: "green",
+          moveTarget: 2,
+        },
+      },
+    });
+
+    expect(legacyState.cross.settings.colors).toEqual(["green"]);
+    expect(legacyState.cross.settings.moveTarget).toBe(3);
+
+    const next = updateCrossSettings(defaultTrainingState(), {
+      colors: [],
+      moveTarget: 99,
+    });
+
+    expect(next.cross.settings.colors).toEqual(["white"]);
+    expect(next.cross.settings.moveTarget).toBe(8);
   });
 
   test("updates algorithm settings and subsets immutably", () => {

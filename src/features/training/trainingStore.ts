@@ -47,7 +47,19 @@ function isFiniteNumber(value: unknown): value is number {
 }
 
 function clampMoveTarget(value: unknown): number {
-  return isFiniteNumber(value) ? Math.min(12, Math.max(4, Math.round(value))) : 8;
+  return isFiniteNumber(value) ? Math.min(8, Math.max(3, Math.round(value))) : 6;
+}
+
+function sanitizeCrossColorList(value: unknown, fallback: CrossColor[]): CrossColor[] {
+  const source = Array.isArray(value) ? value : [];
+  const colors = source.filter(
+    (entry, index): entry is CrossColor =>
+      typeof entry === "string" &&
+      CROSS_COLORS.includes(entry as CrossColor) &&
+      source.indexOf(entry) === index,
+  );
+
+  return colors.length > 0 ? colors : fallback;
 }
 
 function sanitizeCrossAttempt(value: unknown): CrossAttempt | null {
@@ -96,16 +108,15 @@ function sanitizeAlgorithmTime(value: unknown): AlgorithmTime | null {
 
 function sanitizeCrossSettings(value: unknown, fallback: CrossSettings): CrossSettings {
   const settings = isRecord(value) ? value : {};
+  const legacyColor = CROSS_COLORS.includes(settings.color as CrossColor)
+    ? [settings.color as CrossColor]
+    : fallback.colors;
 
   return {
-    color: CROSS_COLORS.includes(settings.color as CrossColor)
-      ? (settings.color as CrossColor)
-      : fallback.color,
+    colors: sanitizeCrossColorList(settings.colors, legacyColor),
     moveTarget: clampMoveTarget(settings.moveTarget),
     xcross: settings.xcross === true,
     shortScramble: settings.shortScramble === true,
-    inspection: settings.inspection === true,
-    revealMode: settings.revealMode === "all" ? "all" : "one",
   };
 }
 
@@ -114,22 +125,17 @@ function updateCrossSettingsValue(
   patch: Partial<CrossSettings>,
 ): CrossSettings {
   return {
-    color:
-      typeof patch.color === "string" && CROSS_COLORS.includes(patch.color as CrossColor)
-        ? (patch.color as CrossColor)
-        : current.color,
+    colors:
+      patch.colors === undefined
+        ? current.colors
+        : sanitizeCrossColorList(patch.colors, current.colors),
     moveTarget:
       typeof patch.moveTarget === "number" && Number.isFinite(patch.moveTarget)
-        ? Math.min(12, Math.max(4, Math.round(patch.moveTarget)))
+        ? Math.min(8, Math.max(3, Math.round(patch.moveTarget)))
         : current.moveTarget,
     xcross: typeof patch.xcross === "boolean" ? patch.xcross : current.xcross,
     shortScramble:
       typeof patch.shortScramble === "boolean" ? patch.shortScramble : current.shortScramble,
-    inspection: typeof patch.inspection === "boolean" ? patch.inspection : current.inspection,
-    revealMode:
-      patch.revealMode === "one" || patch.revealMode === "all"
-        ? patch.revealMode
-        : current.revealMode,
   };
 }
 
@@ -195,12 +201,10 @@ export function defaultTrainingState(): TrainingState {
     activeTrainer: "cross",
     cross: {
       settings: {
-        color: "white",
-        moveTarget: 8,
+        colors: ["white"],
+        moveTarget: 6,
         xcross: false,
         shortScramble: false,
-        inspection: false,
-        revealMode: "one",
       },
       history: [],
     },

@@ -1,17 +1,14 @@
 export type TrainingMode = "cross" | "algorithms";
 export type CrossColor = "white" | "yellow" | "green" | "blue" | "red" | "orange";
 export type CrossRating = "good" | "okay" | "missed";
-export type RevealMode = "one" | "all";
 export type AlgorithmSetId = "OLL" | "PLL" | "COLL" | "ZBLL" | "LSLL" | "CLL2" | "PLL4";
 export type AlgorithmMode = "drill" | "subset";
 
 export type CrossSettings = {
-  color: CrossColor;
+  colors: CrossColor[];
   moveTarget: number;
   xcross: boolean;
   shortScramble: boolean;
-  inspection: boolean;
-  revealMode: RevealMode;
 };
 
 export type CrossAttempt = {

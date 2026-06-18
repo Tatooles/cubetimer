@@ -133,10 +133,11 @@ describe("TrainingPage shell composition", () => {
     expect(subsetEditorSource).toContain("Select none");
   });
 
-  test("cross trainer source exposes reveal, rating, and inspection controls", () => {
+  test("cross trainer source exposes reveal and rating controls without inspection controls", () => {
     expect(crossTrainerSource).toContain("Reveal next move");
     expect(crossTrainerSource).toContain("How did that go?");
-    expect(crossTrainerSource).toContain("Inspect");
+    expect(crossTrainerSource).not.toContain("Inspect");
+    expect(crossTrainerSource).not.toContain("15s inspection active");
     expect(crossTrainerSource).toContain("copyTextToClipboard");
   });
 
@@ -150,13 +151,20 @@ describe("TrainingPage shell composition", () => {
     expect(crossTrainerSource).toContain("advance()");
     expect(crossTrainerSource).toContain("setFlagged((current) => !current)");
     expect(crossTrainerSource).toContain("revealAll()");
-    expect(crossTrainerSource).toContain("setInspecting((current) => !current)");
+    expect(crossTrainerSource).not.toContain("setInspecting");
   });
 
   test("cross settings source exposes color, target, and xcross controls", () => {
     expect(crossSettingsSource).toContain("Cross color");
+    expect(crossSettingsSource).toContain('type="checkbox"');
+    expect(crossSettingsSource).toContain('min="3"');
+    expect(crossSettingsSource).toContain('max="8"');
     expect(crossSettingsSource).toContain("Move target");
     expect(crossSettingsSource).toContain("XCross practice");
+    expect(crossSettingsSource).not.toContain("15s inspection");
+    expect(crossSettingsSource).not.toContain("Reveal mode");
+    expect(crossSettingsSource).not.toContain("One at a time");
+    expect(crossSettingsSource).not.toContain("All at once");
   });
 });
 
@@ -433,7 +441,7 @@ describe("TrainingPage interactions", () => {
     expect(sheetContent()?.textContent).toContain("Training settings");
   });
 
-  test("cross keyboard shortcuts reveal, advance, flag, inspect, and ignore controls", async () => {
+  test("cross keyboard shortcuts reveal, advance, flag, and ignore controls", async () => {
     await render(<TrainingPage />);
 
     expect(pageText()).toContain("Reveal the solution when ready.");
@@ -451,12 +459,6 @@ describe("TrainingPage interactions", () => {
     });
 
     expect(pageText()).toContain("Flagged");
-
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "i" }));
-    });
-
-    expect(pageText()).toContain("15s inspection active");
 
     const beforeNext = testId("cross-scramble").textContent;
 
@@ -522,6 +524,24 @@ describe("TrainingPage interactions", () => {
     ).toBeGreaterThan(1);
   });
 
+  test("cross reveal buttons are explicit instead of using a persistent reveal mode", async () => {
+    await render(<TrainingPage />);
+
+    await click(button("Reveal next move"));
+
+    expect(document.body.querySelectorAll('[data-testid="cross-solution-move"]')).toHaveLength(1);
+
+    await click(button("Reveal next move"));
+
+    expect(document.body.querySelectorAll('[data-testid="cross-solution-move"]')).toHaveLength(2);
+
+    await click(button("Reveal all"));
+
+    expect(
+      document.body.querySelectorAll('[data-testid="cross-solution-move"]').length,
+    ).toBeGreaterThan(2);
+  });
+
   test("rating a cross attempt records it in sidebar history", async () => {
     await render(<TrainingPage />);
 
@@ -571,11 +591,9 @@ describe("TrainingPage interactions", () => {
     await render(<TrainingPage />);
 
     await click(button("Flag"));
-    await click(button("Inspect"));
     await click(button("Reveal next move"));
 
     expect(pageText()).toContain("Flagged");
-    expect(pageText()).toContain("15s inspection active");
     expect(pageText()).not.toContain("Reveal the solution when ready.");
 
     await click(button("Short scramble"));

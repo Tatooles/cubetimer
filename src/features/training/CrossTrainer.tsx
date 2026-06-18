@@ -45,31 +45,25 @@ export function CrossTrainer({ settings, shortcutsDisabled = false, onRate }: Cr
   const trainerRef = useRef<HTMLElement | null>(null);
   const [scramble, setScramble] = useState(() => newScramble(settings.shortScramble));
   const [flagged, setFlagged] = useState(false);
-  const [inspecting, setInspecting] = useState(false);
   const [revealCount, setRevealCount] = useState(0);
   const previousSettings = useRef(settings);
   const solution = useMemo(() => mockCrossSolution(scramble, settings), [scramble, settings]);
   const moves = visibleMoves(solution);
-  const revealedCount =
-    settings.revealMode === "all" && revealCount > 0 ? moves.length : revealCount;
-  const shownMoves = moves.slice(0, revealedCount);
+  const shownMoves = moves.slice(0, revealCount);
 
   useEffect(() => {
     const previous = previousSettings.current;
     const changed =
-      previous.color !== settings.color ||
+      previous.colors.join(",") !== settings.colors.join(",") ||
       previous.moveTarget !== settings.moveTarget ||
       previous.xcross !== settings.xcross ||
-      previous.shortScramble !== settings.shortScramble ||
-      previous.inspection !== settings.inspection ||
-      previous.revealMode !== settings.revealMode;
+      previous.shortScramble !== settings.shortScramble;
 
     if (!changed) {
       return;
     }
 
     setFlagged(false);
-    setInspecting(false);
     setRevealCount(0);
 
     if (previous.shortScramble !== settings.shortScramble) {
@@ -82,14 +76,11 @@ export function CrossTrainer({ settings, shortcutsDisabled = false, onRate }: Cr
   function advance() {
     setScramble(newScramble(settings.shortScramble));
     setFlagged(false);
-    setInspecting(false);
     setRevealCount(0);
   }
 
   function revealNext() {
-    setRevealCount((current) =>
-      settings.revealMode === "all" ? moves.length : Math.min(moves.length, current + 1),
-    );
+    setRevealCount((current) => Math.min(moves.length, current + 1));
   }
 
   function revealAll() {
@@ -146,9 +137,6 @@ export function CrossTrainer({ settings, shortcutsDisabled = false, onRate }: Cr
       } else if (event.key === "r" || event.key === "R") {
         event.preventDefault();
         revealAll();
-      } else if (event.key === "i" || event.key === "I") {
-        event.preventDefault();
-        setInspecting((current) => !current);
       }
     }
 
@@ -164,7 +152,10 @@ export function CrossTrainer({ settings, shortcutsDisabled = false, onRate }: Cr
             Cross trainer
           </span>
           <span className="rounded-full border border-white/[0.07] bg-white/[0.03] px-3 py-1 text-xs text-zinc-300">
-            {settings.color} cross
+            {settings.colors.join(" / ")} cross
+          </span>
+          <span className="rounded-full border border-white/[0.07] bg-white/[0.03] px-3 py-1 text-xs text-zinc-300">
+            best: {solution.cross.color}
           </span>
           <span className="rounded-full border border-white/[0.07] bg-white/[0.03] px-3 py-1 text-xs text-zinc-300">
             {settings.moveTarget} move target
@@ -182,9 +173,6 @@ export function CrossTrainer({ settings, shortcutsDisabled = false, onRate }: Cr
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-700">
                 Scramble
               </div>
-              {inspecting ? (
-                <div className="mt-1 text-xs font-medium text-amber-200">15s inspection active</div>
-              ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -211,13 +199,6 @@ export function CrossTrainer({ settings, shortcutsDisabled = false, onRate }: Cr
                 className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.07] px-3 py-2 text-xs font-medium text-zinc-300 hover:border-white/15"
               >
                 Copy
-              </button>
-              <button
-                type="button"
-                onClick={() => setInspecting((current) => !current)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.07] px-3 py-2 text-xs font-medium text-zinc-300 hover:border-white/15"
-              >
-                Inspect
               </button>
             </div>
           </div>

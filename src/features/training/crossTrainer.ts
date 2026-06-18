@@ -1,4 +1,4 @@
-import type { CrossAttempt, CrossSettings } from "./types";
+import type { CrossAttempt, CrossColor, CrossSettings } from "./types";
 
 type TurnFace = "U" | "D" | "L" | "R" | "F" | "B";
 type TurnAxis = "x" | "y" | "z";
@@ -11,9 +11,9 @@ type CrossLine = {
 
 export type CrossSolution = {
   scramble: string;
-  settings: Pick<CrossSettings, "color" | "moveTarget" | "xcross">;
+  settings: Pick<CrossSettings, "colors" | "moveTarget" | "xcross">;
   cross: CrossLine & {
-    color: CrossSettings["color"];
+    color: CrossSettings["colors"][number];
   };
   xcross?: CrossLine & {
     slot: "FR" | "FL" | "BR" | "BL";
@@ -86,23 +86,30 @@ export function generateCrossScramble({ short }: { short: boolean }): string {
 
 export function mockCrossSolution(scramble: string, settings: CrossSettings): CrossSolution {
   const seed = hashText(
-    `${scramble}|${settings.color}|${settings.moveTarget}|${settings.xcross}|${settings.revealMode}`,
+    `${scramble}|${settings.colors.join(",")}|${settings.moveTarget}|${settings.xcross}`,
   );
   const random = createSeededRandom(seed);
-  const crossLength = 4 + Math.floor(random() * 5);
-  const crossMoves = generateMoves(crossLength, random, SOLUTION_FACES);
+  const selectedColors: CrossColor[] = settings.colors.length > 0 ? settings.colors : ["white"];
+  const crossCandidates = selectedColors.map((color) => {
+    const crossLength = 3 + Math.floor(random() * 5);
+    const moves = generateMoves(crossLength, random, SOLUTION_FACES);
+    return { color, moves };
+  });
+  const bestCross = crossCandidates.reduce((best, candidate) =>
+    candidate.moves.length < best.moves.length ? candidate : best,
+  );
   const solution: CrossSolution = {
     scramble,
     settings: {
-      color: settings.color,
+      colors: settings.colors,
       moveTarget: settings.moveTarget,
       xcross: settings.xcross,
     },
     cross: {
-      color: settings.color,
-      moves: crossMoves,
-      solution: crossMoves.join(" "),
-      moveCount: crossMoves.length,
+      color: bestCross.color,
+      moves: bestCross.moves,
+      solution: bestCross.moves.join(" "),
+      moveCount: bestCross.moves.length,
     },
     summary: {
       mode: settings.xcross ? "xcross" : "cross",
@@ -113,7 +120,7 @@ export function mockCrossSolution(scramble: string, settings: CrossSettings): Cr
 
   if (settings.xcross) {
     const extraLength = Math.floor(random() * 3);
-    const xcrossMoves = [...crossMoves, ...generateMoves(extraLength, random, SOLUTION_FACES)];
+    const xcrossMoves = [...bestCross.moves, ...generateMoves(extraLength, random, SOLUTION_FACES)];
 
     solution.xcross = {
       moves: xcrossMoves,
