@@ -34,7 +34,7 @@ export function EventSelector({
   if (mode === "select") {
     return (
       <Select value={eventId} disabled={disabled} onValueChange={eventChangeHandler(onEventChange)}>
-        <SelectTrigger className="event-select-trigger event-select-toolbar-trigger h-9 min-w-28 justify-center rounded-md border-transparent bg-transparent px-2.5 font-mono text-sm text-zinc-300 shadow-none hover:border-white/[0.07] hover:bg-white/[0.03] hover:text-zinc-100 focus:border-white/10 focus:bg-white/[0.04] focus:ring-1 focus:ring-white/10">
+        <SelectTrigger className="event-select-trigger event-select-toolbar-trigger h-9 min-w-20 justify-center rounded-md border-transparent bg-transparent px-2.5 font-mono text-sm text-zinc-300 shadow-none hover:border-white/[0.07] hover:bg-white/[0.03] hover:text-zinc-100 focus:border-white/10 focus:bg-white/[0.04] focus:ring-1 focus:ring-white/10 sm:min-w-28">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

@@ -363,9 +363,9 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
         className={`grid h-svh ${contentRowsClass} overflow-hidden md:grid-rows-[56px_1fr] ${densityClass}`}
       >
         <header
-          className={`col-span-full grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-white/[0.07] px-4 md:grid-cols-subgrid md:gap-0 md:px-0 ${headerDensityClass}`}
+          className={`col-span-full grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-white/[0.07] px-3 md:grid-cols-subgrid md:gap-0 md:px-0 ${headerDensityClass}`}
         >
-          <div className="flex min-w-0 shrink-0 items-center gap-4 overflow-hidden md:col-start-1 md:row-start-1 md:px-6">
+          <div className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden md:col-start-1 md:row-start-1 md:gap-4 md:px-6">
             <div className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden font-mono text-sm font-semibold">
               <span className="grid h-4.5 w-4.5 grid-cols-2 gap-px rounded bg-zinc-100 p-px">
                 <span className="rounded-[1px] bg-indigo-400" />
@@ -373,46 +373,47 @@ export function TimerPage({ activeSection = "timer", onSectionChange }: TimerPag
                 <span className="rounded-[1px] bg-black" />
                 <span className="rounded-[1px] bg-black" />
               </span>
-              <span>
+              <span className="hidden md:inline">
                 cube<span className="text-zinc-600">timer</span>
               </span>
             </div>
             {onSectionChange ? (
-              <nav className="hidden h-full min-w-0 items-stretch md:flex">
+              <nav className="hidden shrink-0 rounded-md border border-white/[0.07] bg-black/30 p-0.5 md:flex">
                 <button
                   type="button"
                   onClick={() => handleSectionChange("timer")}
-                  className={`relative px-2 text-sm font-medium md:px-4 ${activeSection === "timer" ? "text-indigo-200" : "text-zinc-500 hover:text-zinc-200"}`}
+                  className={`section-switch-button rounded px-2.5 py-1.5 ${activeSection === "timer" ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-200"}`}
                 >
                   Timer
-                  {activeSection === "timer" ? (
-                    <span className="absolute inset-x-1 bottom-0 h-0.5 bg-indigo-300 md:inset-x-3" />
-                  ) : null}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSectionChange("training")}
                   disabled={sectionSwitchLocked}
-                  className={`relative px-2 text-sm font-medium md:px-4 ${activeSection === "training" ? "text-indigo-200" : "text-zinc-500 hover:text-zinc-200"} disabled:opacity-40 disabled:hover:text-zinc-500`}
+                  className={`section-switch-button rounded px-2.5 py-1.5 ${activeSection === "training" ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-200"} disabled:opacity-40 disabled:hover:text-zinc-500`}
                 >
                   Training
-                  {activeSection === "training" ? (
-                    <span className="absolute inset-x-1 bottom-0 h-0.5 bg-indigo-300 md:inset-x-3" />
-                  ) : null}
                 </button>
               </nav>
             ) : null}
             {onSectionChange ? (
-              <button
-                type="button"
-                onClick={() =>
-                  handleSectionChange(activeSection === "timer" ? "training" : "timer")
-                }
-                disabled={sectionSwitchLocked && activeSection === "timer"}
-                className="shrink-0 rounded-md border border-white/[0.07] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 disabled:opacity-40 md:hidden"
-              >
-                {activeSection === "timer" ? "Train" : "Timer"}
-              </button>
+              <nav className="flex shrink-0 rounded-md border border-white/[0.07] bg-black/30 p-0.5 md:hidden">
+                <button
+                  type="button"
+                  onClick={() => handleSectionChange("timer")}
+                  className={`section-switch-button rounded px-1.5 py-1 ${activeSection === "timer" ? "bg-zinc-800 text-zinc-100" : "text-zinc-500"}`}
+                >
+                  Timer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSectionChange("training")}
+                  disabled={sectionSwitchLocked}
+                  className={`section-switch-button rounded px-1.5 py-1 ${activeSection === "training" ? "bg-zinc-800 text-zinc-100" : "text-zinc-500"} disabled:opacity-40`}
+                >
+                  Training
+                </button>
+              </nav>
             ) : null}
           </div>
           <div className="min-w-0 justify-self-center md:hidden">

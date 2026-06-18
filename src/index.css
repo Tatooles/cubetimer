@@ -121,9 +121,17 @@ button:disabled {
   color: rgb(244 244 245);
 }
 
+.section-switch-button {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1rem;
+  text-transform: none;
+}
+
 .event-select-toolbar-trigger {
   height: 36px;
-  min-width: 112px;
+  min-width: 80px;
   justify-content: center;
   border-color: transparent;
   background: transparent;
@@ -142,6 +150,12 @@ button:disabled {
   border-color: rgb(255 255 255 / 10%);
   background: rgb(255 255 255 / 4%);
   box-shadow: 0 0 0 1px rgb(255 255 255 / 10%);
+}
+
+@media (min-width: 640px) {
+  .event-select-toolbar-trigger {
+    min-width: 112px;
+  }
 }
 
 .event-more-trigger {

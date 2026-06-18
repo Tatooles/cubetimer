@@ -64,6 +64,8 @@ describe("EventSelector", () => {
     expect(triggerClass).toContain("event-select-toolbar-trigger");
     expect(triggerClass).toContain("border-transparent");
     expect(triggerClass).toContain("bg-transparent");
+    expect(triggerClass).toContain("min-w-20");
+    expect(triggerClass).toContain("sm:min-w-28");
     expect(triggerClass).toContain("shadow-none");
     expect(html).not.toContain('data-slot="tabs-list"');
   });

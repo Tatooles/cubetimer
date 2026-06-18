@@ -72,17 +72,18 @@ describe("TimerPage header layout", () => {
   });
 
   test("centers the mobile event selector in the top bar", () => {
-    expect(timerPageSource).toContain("grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]");
+    expect(timerPageSource).toContain("grid-cols-[auto_minmax(0,1fr)_auto]");
     expect(timerPageSource).toContain("justify-self-center md:hidden");
     expect(timerPageSource).toContain("justify-self-end");
   });
 
-  test("keeps a compact mobile Training switch visible beside the logo", () => {
-    expect(timerPageSource).toContain('activeSection === "timer" ? "Train" : "Timer"');
-    expect(timerPageSource).toContain("md:hidden");
-    expect(timerPageSource).toContain(
-      'handleSectionChange(activeSection === "timer" ? "training" : "timer")',
-    );
+  test("keeps a segmented Timer and Training switch separate from event controls", () => {
+    expect(timerPageSource).toContain("bg-black/30 p-0.5 md:flex");
+    expect(timerPageSource).toContain("bg-black/30 p-0.5 md:hidden");
+    expect(timerPageSource).toContain("section-switch-button");
+    expect(timerPageSource).toContain('handleSectionChange("timer")');
+    expect(timerPageSource).toContain('handleSectionChange("training")');
+    expect(timerPageSource).toContain('className="hidden md:inline"');
   });
 
   test("guards training tab switches while the timer is locked", () => {

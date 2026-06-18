@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cube Timer — Training (Workbench)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+<style>
+  /* ── Tokens (same as studio) ─────────────────────────────────── */
+  :root {
+    --bg: #0a0a0b;
+    --bg-1: #101012;
+    --bg-2: #15151a;
+    --bg-3: #1c1c22;
+    --line: rgba(255,255,255,0.07);
+    --line-2: rgba(255,255,255,0.12);
+    --line-3: rgba(255,255,255,0.2);
+    --fg: #f3f3f0;
+    --fg-1: rgba(243,243,240,0.72);
+    --fg-2: rgba(243,243,240,0.46);
+    --fg-3: rgba(243,243,240,0.28);
+    --fg-4: rgba(243,243,240,0.16);
+    --accent: #6E8BFF;
+    --accent-dim: rgba(110,139,255,0.16);
+    --accent-2: rgba(110,139,255,0.4);
+    --warn: #ffb340;
+    --bad: #ff6a5e;
+    --good: #8ee37a;
+    --okay: #f7c948;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --pad: 24px;
+    --pad-2: 16px;
+    --pad-3: 10px;
+    --sidebar: 280px;
+    --rail: 296px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.4;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    user-select: none;
+  }
+  button { font-family: inherit; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* ── Three-column shell ─────────────────────────────────────── */
+  .app {
+    display: grid;
+    grid-template-columns: var(--sidebar) 1fr var(--rail);
+    grid-template-rows: 56px 1fr;
+    grid-template-areas:
+      "topbar topbar topbar"
+      "sidebar main rail";
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ── Top bar ────────────────────────────────────────────────── */
+  .topbar {
+    grid-area: topbar;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--pad);
+    border-bottom: 1px solid var(--line);
+    gap: 18px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--fg);
+    padding-right: 14px;
+    border-right: 1px solid var(--line);
+    margin-right: 2px;
+    height: 24px;
+  }
+  .brand .mark {
+    width: 18px; height: 18px; border-radius: 4px;
+    background: var(--fg); position: relative;
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+    gap: 1px; padding: 1px;
+  }
+  .brand .mark > span { background: var(--bg); border-radius: 1px; }
+  .brand .mark > span:nth-child(1) { background: var(--accent); }
+  .brand .name { font-weight: 600; letter-spacing: -0.005em; }
+  .brand .name em { font-style: normal; color: var(--fg-2); font-weight: 400; }
+
+  .app-tabs { display: flex; align-items: stretch; height: 100%; gap: 0; margin-right: 4px; }
+  .app-tab {
+    position: relative; display: inline-flex; align-items: center;
+    padding: 0 14px; text-decoration: none; color: var(--fg-2);
+    font-size: 12px; font-weight: 500; letter-spacing: 0.01em;
+    cursor: pointer; transition: color 120ms; border: 0; background: transparent;
+    font-family: inherit; height: 100%;
+  }
+  .app-tab:hover { color: var(--fg); }
+  .app-tab.active { color: var(--fg); }
+  .app-tab.active::after {
+    content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px;
+    height: 2px; background: var(--accent); border-radius: 1px 1px 0 0;
+  }
+  .app-tab.disabled { color: var(--fg-3); cursor: default; }
+  .app-tab .soon {
+    margin-left: 6px; font-size: 9px; font-family: var(--font-mono);
+    text-transform: uppercase; letter-spacing: 0.14em; padding: 2px 5px;
+    border: 1px solid var(--line); border-radius: 3px; color: var(--fg-3);
+  }
+
+  .trainer-picker {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--bg-1);
+  }
+  .trainer-picker button {
+    background: transparent; color: var(--fg-2); border: 0;
+    font-family: var(--font-mono); font-size: 11px;
+    padding: 6px 12px; border-radius: 5px; cursor: pointer;
+    transition: color 120ms, background 120ms;
+    letter-spacing: 0.02em; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .trainer-picker button:hover { color: var(--fg); }
+  .trainer-picker button.active { background: var(--bg-2); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line-2); }
+  .trainer-picker button .ico { width: 13px; height: 13px; display: inline-flex; align-items: center; justify-content: center; }
+  .trainer-picker button .ico svg { width: 100%; height: 100%; }
+
+  .top-actions { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+  .icon-btn {
+    width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; color: var(--fg-2); border: 0;
+    border-radius: 7px; cursor: pointer; transition: color 120ms, background 120ms;
+  }
+  .icon-btn:hover { color: var(--fg); background: var(--bg-1); }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  /* ── Sidebar ────────────────────────────────────────────────── */
+  .sidebar {
+    grid-area: sidebar;
+    border-right: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .side-head {
+    padding: 14px var(--pad);
+    border-bottom: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .side-head .title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--fg-3);
+    font-weight: 500;
+  }
+  .side-head .meta {
+    color: var(--fg-2); font-family: var(--font-mono); font-size: 11px;
+  }
+  .side-head .meta b { color: var(--fg); font-weight: 500; }
+
+  /* Cross history list */
+  .hist-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+  /* The renderer emits .item (used by direction A as cards) — restyle here for B's rows */
+  .hist-list .item {
+    display: grid;
+    grid-template-columns: 38px 32px 1fr 16px;
+    align-items: center;
+    padding: 9px var(--pad);
+    cursor: pointer;
+    gap: 8px;
+    border-left: 2px solid transparent;
+    transition: background 100ms, border-color 100ms;
+    background: transparent !important; /* override A's card bg */
+    border-radius: 0 !important;
+    border: 0;
+    border-left: 2px solid transparent;
+  }
+  .hist-list .item:hover { background: var(--bg-1) !important; border-left-color: var(--line-2); }
+  .hist-list .item.active { background: var(--bg-2) !important; border-left-color: var(--accent); }
+  .hist-list .item .n { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-3); }
+  .hist-list .item .mv { font-family: var(--font-mono); font-size: 11.5px; color: var(--fg); text-align: right; }
+  .hist-list .item .mv span { color: var(--fg-3); }
+  .hist-list .item .r {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--fg-1);
+  }
+  .hist-list .item .r .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .hist-list .item.good .r .dot { background: var(--good); }
+  .hist-list .item.okay .r .dot { background: var(--okay); }
+  .hist-list .item.miss .r .dot { background: var(--bad); }
+  .hist-list .item .flag {
+    color: var(--accent); font-size: 12px; text-align: center;
+    opacity: 0; transition: opacity 120ms;
+  }
+  .hist-list .item.flagged .flag { opacity: 1; }
+  .hist-list .item.x .n::after {
+    content: 'X';
+    font-family: var(--font-mono); font-size: 9px;
+    color: var(--accent); margin-left: 4px;
+    padding: 1px 4px; border: 1px solid var(--accent-2);
+    border-radius: 2px; letter-spacing: 0.06em;
+    background: var(--accent-dim);
+  }
+
+  /* Alg subset list inside sidebar */
+  .alg-list { flex: 1; overflow-y: auto; padding: 6px 0; display: none; }
+  .alg-list.on { display: block; }
+  .alg-list-head {
+    padding: 8px var(--pad);
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--fg-3); font-weight: 500;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .alg-list-head .ct { font-family: var(--font-mono); letter-spacing: 0.04em; text-transform: none; color: var(--fg-1); font-size: 11px; }
+  .alg-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 6px var(--pad);
+    gap: 8px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+  }
+  .alg-row:hover { background: var(--bg-1); }
+  .alg-row.cur { background: var(--bg-2); border-left-color: var(--accent); }
+  .alg-row .nm { font-family: var(--font-mono); font-size: 12px; color: var(--fg); }
+  .alg-row .nm small { color: var(--fg-3); margin-left: 6px; font-size: 10px; }
+  .alg-row .t {
+    font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sidebar-foot {
+    padding: 10px var(--pad);
+    border-top: 1px solid var(--line);
+    display: flex; gap: 6px;
+  }
+  .ghost-btn {
+    flex: 1;
+    background: transparent;
+    color: var(--fg-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .ghost-btn:hover { color: var(--fg); border-color: var(--line-2); background: var(--bg-1); }
+
+  /* ── Main ────────────────────────────────────────────────────── */
+  .main {
+    grid-area: main;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 22px 28px 40px;
+    gap: 18px;
+  }
+
+  /* Status row at top of main */
+  .status-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .status-row .left, .status-row .right { display: flex; align-items: center; gap: 16px; }
+  .status-row .seq {
+    font-family: var(--font-mono); font-size: 11px; color: var(--fg-2); letter-spacing: 0.04em;
+  }
+  .status-row .seq b { color: var(--fg); font-weight: 500; }
+  .status-row .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--fg-1); font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+  .status-row .pill .sw { width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.5); }
+  .status-row .pill.x { color: var(--accent); border-color: var(--accent-2); background: var(--accent-dim); }
+
+  /* Scramble + net side-by-side */
+  .scramble-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: 24px;
+    align-items: center;
+  }
+  .scramble-card .text-side { display: flex; flex-direction: column; gap: 14px; }
+  .scramble-card .lab {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--fg-3); font-weight: 500;
+  }
+  .scramble-card .scramble {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    color: var(--fg);
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+    word-spacing: 0.16em;
+    text-wrap: balance;
+  }
+  .scramble-card .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .net-wrap { display: flex; justify-content: center; align-items: center; }
+  .net-wrap svg { width: 100%; max-width: 240px; height: 180px; }
+
+  /* Inspection bar (inline) */
+  .insp-bar {
+    display: none;
+    align-items: center; gap: 14px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 20px;
+  }
+  .insp-bar.on { display: flex; }
+  .insp-bar .ring { width: 56px; height: 56px; position: relative; }
+  .insp-bar .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .insp-bar .ring circle { fill: none; stroke-width: 3; }
+  .insp-bar .ring .bg { stroke: var(--line); }
+  .insp-bar .ring .fg { stroke: var(--accent); transition: stroke-dashoffset 250ms linear, stroke 200ms; }
+  .insp-bar .ring .num {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--fg); font-weight: 500; font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+  }
+  .insp-bar.warn .ring .fg { stroke: var(--warn); }
+  .insp-bar.warn .ring .num { color: var(--warn); }
+  .insp-bar.bad  .ring .fg { stroke: var(--bad); }
+  .insp-bar.bad  .ring .num { color: var(--bad); }
+  .insp-bar .info {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .insp-bar .info .l1 { font-size: 11px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.14em; }
+  .insp-bar .info .l2 { font-size: 13px; color: var(--fg-1); font-family: var(--font-mono); }
+
+  /* Solution block */
+  .solution-block {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px 22px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .solution-block .head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--fg-3); font-weight: 500;
+  }
+  .solution-block .head .count {
+    color: var(--fg-1); font-family: var(--font-mono);
+    letter-spacing: 0.04em; text-transform: none; font-size: 11px;
+  }
+  .moves {
+    display: flex; gap: 8px; justify-content: flex-start; flex-wrap: wrap;
+    min-height: 36px; align-items: center;
+  }
+  .move {
+    min-width: 42px; height: 36px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 16px;
+    color: var(--fg);
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 200ms;
+  }
+  .move.hidden { color: var(--fg-4); background: transparent; border-style: dashed; }
+  .move.hidden .glyph { color: var(--fg-4); }
+  .move.cur { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+  .move-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--font-mono); font-size: 11px; color: var(--fg-2);
+  }
+  .move-meta .ms { color: var(--fg-3); }
+  .solution-block .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* Buttons */
+  .btn {
+    background: transparent;
+    color: var(--fg-1);
+    border: 1px solid var(--line-2);
+    border-radius: 7px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 120ms, background 120ms, border-color 120ms;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { color: var(--fg); background: var(--bg-1); border-color: var(--line-3); }
+  .btn .key {
+    font-family: var(--font-mono); font-size: 10px; color: var(--fg-3);
+    padding: 1px 5px; border: 1px solid var(--line); border-radius: 3px;
+  }
+  .btn.primary { background: var(--accent); color: #0a0a0b; border-color: var(--accent); font-weight: 600; }
+  .btn.primary:hover { background: #8aa3ff; }
+  .btn.primary .key { color: rgba(0,0,0,0.5); border-color: rgba(0,0,0,0.18); }
+  .btn.subtle { border-color: var(--line); color: var(--fg-2); padding: 5px 10px; font-size: 11px; }
+  .btn.subtle:hover { color: var(--fg); }
+  .btn.icon { padding: 6px 10px; }
+
+  /* Rating row */
+  .rating-row {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+  .rating-row .q {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--fg-3); font-weight: 500;
+    flex: 1;
+  }
+  .rating-row .options { display: flex; gap: 6px; }
+  .rate {
+    padding: 7px 16px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid var(--line-2);
+    color: var(--fg-1);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 120ms;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .rate:hover { background: var(--bg-2); border-color: var(--line-3); color: var(--fg); }
+  .rate .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .rate.good .dot { background: var(--good); }
+  .rate.okay .dot { background: var(--okay); }
+  .rate.miss .dot { background: var(--bad); }
+  .rate.active { background: var(--bg-2); color: var(--fg); }
+  .rate.good.active { box-shadow: inset 0 0 0 1px rgba(142,227,122,0.4); }
+  .rate.okay.active { box-shadow: inset 0 0 0 1px rgba(247,201,72,0.4); }
+  .rate.miss.active { box-shadow: inset 0 0 0 1px rgba(255,106,94,0.4); }
+
+  /* ── Alg trainer in main ─────────────────────────────────────── */
+  .alg-main { display: none; flex-direction: column; gap: 18px; }
+  .alg-main.on { display: flex; }
+
+  .alg-display {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 28px;
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 24px;
+    align-items: center;
+  }
+  .alg-display .left-pane { display: flex; flex-direction: column; gap: 14px; }
+  .alg-display .case-name {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px; color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .alg-display .case-name .grp {
+    color: var(--fg-3);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+  }
+  .alg-display .case-display {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 400;
+    font-size: 30px;
+    color: var(--fg);
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .alg-display .alg-seq {
+    font-family: var(--font-mono);
+    font-size: 17px;
+    color: var(--fg);
+    letter-spacing: 0.03em;
+    word-spacing: 0.14em;
+    line-height: 1.45;
+    text-wrap: balance;
+  }
+  .alg-display .setup {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--fg-3);
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+  }
+  .alg-display .setup b {
+    color: var(--fg-2); font-weight: 500; text-transform: uppercase;
+    font-size: 10px; letter-spacing: 0.14em; margin-right: 8px;
+  }
+
+  .alg-timer-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 32px 24px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px;
+    transition: background 160ms, border-color 160ms;
+  }
+  .alg-timer-card.holding { background: rgba(255,106,94,0.06); border-color: rgba(255,106,94,0.2); }
+  .alg-timer-card.ready { background: rgba(142,227,122,0.06); border-color: rgba(142,227,122,0.2); }
+  .alg-timer-display {
+    font-family: var(--font-mono);
+    font-weight: 300;
+    font-size: 88px;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .alg-timer-display .ms { color: var(--fg-2); }
+  .alg-timer-card.holding .alg-timer-display { color: var(--bad); }
+  .alg-timer-card.ready .alg-timer-display { color: var(--good); }
+  .alg-timer-hint {
+    color: var(--fg-3);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+
+  .alg-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .alg-recent {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .alg-recent .head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--fg-3); font-weight: 500;
+  }
+  .alg-recent .head .stats {
+    display: flex; gap: 14px; font-family: var(--font-mono);
+    letter-spacing: 0.04em; text-transform: none; font-size: 11px;
+    color: var(--fg-2);
+  }
+  .alg-recent .head .stats b { color: var(--fg); font-weight: 500; }
+  .alg-recent .times { display: flex; flex-wrap: wrap; gap: 5px; }
+  .alg-recent .t {
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--fg-1);
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 5px; padding: 3px 8px;
+  }
+  .alg-recent .t.best { color: var(--accent); border-color: var(--accent-2); }
+
+  /* Alg trainer needs to show set picker too (in main) */
+  .alg-main .set-picker {
+    display: flex; gap: 5px; flex-wrap: wrap;
+  }
+  .alg-main .set-picker button {
+    background: var(--bg-1); border: 1px solid var(--line);
+    padding: 7px 13px; border-radius: 7px; color: var(--fg-1);
+    font-family: var(--font-mono); font-size: 11.5px;
+    cursor: pointer; transition: all 120ms;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .alg-main .set-picker button:hover { color: var(--fg); border-color: var(--line-2); }
+  .alg-main .set-picker button.active {
+    color: var(--fg); border-color: var(--accent); background: var(--accent-dim);
+  }
+  .alg-main .set-picker button .ct {
+    color: var(--fg-3); font-size: 10px; padding-left: 8px;
+    border-left: 1px solid var(--line-2); margin-left: 4px;
+  }
+  .alg-main .set-picker button.active .ct { color: var(--fg-2); border-left-color: rgba(110,139,255,0.3); }
+
+  .alg-main .mode-toggle {
+    display: flex; gap: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 3px;
+    background: var(--bg-1);
+    align-items: center;
+  }
+  .alg-main .mode-toggle button {
+    background: transparent; border: 0; color: var(--fg-2);
+    font-size: 11px; padding: 5px 14px; border-radius: 5px; cursor: pointer;
+    font-family: var(--font-mono);
+  }
+  .alg-main .mode-toggle button.active { background: var(--bg-2); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line-2); }
+
+  /* ── Right rail (always-on settings) ─────────────────────────── */
+  .rail {
+    grid-area: rail;
+    border-left: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+  .rail .module {
+    padding: 16px var(--pad);
+    border-bottom: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .rail .module.hidden { display: none; }
+  .rail .module h4 {
+    margin: 0; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--fg-3); font-weight: 500;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .rail .module h4 .ct { color: var(--fg-1); font-family: var(--font-mono); letter-spacing: 0.04em; text-transform: none; font-size: 11px; }
+  .s-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: var(--fg-1);
+  }
+  .s-row.col { flex-direction: column; align-items: stretch; gap: 8px; }
+  .s-row .lab { font-size: 11px; color: var(--fg-2); text-transform: uppercase; letter-spacing: 0.1em; }
+  .s-row .val { font-family: var(--font-mono); font-size: 11px; color: var(--fg); }
+
+  .colors {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
+  }
+  .colors .c {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.5);
+    transition: transform 120ms;
+  }
+  .colors .c:hover { transform: scale(1.08); }
+  .colors .c.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--accent); }
+
+  .seg {
+    display: flex; gap: 0;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px;
+    background: var(--bg);
+  }
+  .seg button {
+    flex: 1;
+    background: transparent; border: 0; color: var(--fg-2);
+    font-size: 11px; padding: 5px 8px; border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+  }
+  .seg button:hover { color: var(--fg); }
+  .seg button.on { background: var(--bg-2); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line-2); }
+
+  .slider-row { display: flex; flex-direction: column; gap: 6px; }
+  .slider-row .top { display: flex; justify-content: space-between; align-items: center; }
+  .slider-row .top .lab { font-size: 11px; color: var(--fg-2); text-transform: uppercase; letter-spacing: 0.1em; }
+  .slider-row .top .val { font-family: var(--font-mono); font-size: 12px; color: var(--fg); }
+  .slider-row input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 999px; outline: none;
+  }
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); cursor: pointer;
+    border: 2px solid var(--bg-1);
+  }
+
+  .toggle {
+    width: 32px; height: 18px; background: var(--bg); border-radius: 9px;
+    position: relative; cursor: pointer; border: 1px solid var(--line); flex-shrink: 0;
+  }
+  .toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+    background: var(--fg-2); border-radius: 50%; transition: all 160ms;
+  }
+  .toggle.on { background: var(--accent-dim); border-color: var(--accent); }
+  .toggle.on::after { transform: translateX(14px); background: var(--accent); }
+
+  /* Hide direction-A drawer if rendered */
+  .settings-drawer { display: none !important; }
+
+  /* Subset modal */
+  .modal-back {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 30;
+  }
+  .modal-back.on { display: flex; }
+  .modal {
+    width: 720px; max-width: 92vw; max-height: 80vh;
+    background: var(--bg-1);
+    border: 1px solid var(--line-2);
+    border-radius: 14px;
+    padding: 22px 24px;
+    display: flex; flex-direction: column; gap: 14px;
+    overflow: hidden;
+  }
+  .modal h3 {
+    margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--fg-3); font-weight: 500;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal h3 .ct { color: var(--fg-1); font-family: var(--font-mono); text-transform: none; letter-spacing: 0.04em; }
+  .modal-body { overflow-y: auto; }
+  .case-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 6px;
+  }
+  .case-grid .group-head {
+    grid-column: 1 / -1;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--fg-3); font-weight: 500;
+    padding: 12px 0 4px;
+  }
+  .case-cell {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex; flex-direction: column; gap: 2px;
+    cursor: pointer;
+  }
+  .case-cell.on { border-color: var(--accent); background: var(--accent-dim); }
+  .case-cell .nm { font-family: var(--font-mono); font-size: 11px; color: var(--fg); }
+  .case-cell .al { font-family: var(--font-mono); font-size: 9.5px; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .case-cell.on .nm { color: var(--accent); }
+  .modal-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--line); padding-top: 12px;
+  }
+  .modal-foot .info { color: var(--fg-2); font-size: 11px; font-family: var(--font-mono); }
+  .modal-foot .info b { color: var(--accent); font-weight: 500; }
+  .modal-foot .btns { display: flex; gap: 8px; }
+  .modal-foot .btns button {
+    padding: 7px 14px; border-radius: 6px;
+    border: 1px solid var(--line-2);
+    background: var(--bg-2); color: var(--fg);
+    font-size: 11.5px; font-weight: 500; cursor: pointer;
+  }
+  .modal-foot .btns button.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .modal-foot .btns button.sec { background: transparent; color: var(--fg-2); }
+
+  /* Direction label */
+  .direction-mark {
+    position: fixed; bottom: 12px; right: 16px;
+    color: var(--fg-3); font-size: 10px;
+    font-family: var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .direction-mark::before { content: 'B · '; color: var(--accent); }
+
+  /* Mobile-only chrome (hidden on desktop) */
+  .mobile-nav { display: none; }
+  .sheet-back { display: none; }
+
+  /* Responsive: keep three columns down to ~1200, then degrade */
+  @media (max-width: 1200px) {
+    :root { --sidebar: 240px; --rail: 260px; }
+    .scramble-card { grid-template-columns: 1fr; }
+    .alg-display { grid-template-columns: 1fr; }
+  }
+
+  /* ── Mobile / narrow tablet ──────────────────────────────────── */
+  @media (max-width: 880px) {
+    :root { --pad: 16px; --pad-2: 12px; --nav-h: 62px; }
+    body { overscroll-behavior: none; }
+
+    /* Single column + bottom nav. minmax(0,1fr) keeps a long scramble or the
+       wrapping rows from forcing the column wider than the viewport. */
+    .app {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: 52px 1fr var(--nav-h);
+      grid-template-areas: "topbar" "main" "navbar";
+    }
+    .topbar, .main { min-width: 0; }
+    .scramble { overflow-wrap: anywhere; }
+
+    /* Top bar: brand mark + tabs + compact trainer switch */
+    .topbar { gap: 8px; padding: 0 12px; }
+    .brand { padding-right: 8px; margin-right: 0; }
+    .brand .name em { display: none; }
+    .app-tabs { margin-right: 0; }
+    .app-tab { padding: 0 9px; font-size: 11px; }
+    .app-tab.disabled { display: none; }
+    .trainer-picker { margin-left: auto; padding: 3px; gap: 2px; }
+    .trainer-picker button { padding: 6px 10px; font-size: 11px; gap: 0; }
+    .trainer-picker button .ico { display: none; }
+    .top-actions { display: none; } /* settings lives in the bottom nav */
+
+    /* Sidebar (history / alg list) → slide-in panel from the left */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: min(360px, 92vw);
+      transform: translateX(-100%);
+      transition: transform 280ms cubic-bezier(0.32,0.72,0.16,1);
+      z-index: 25; background: var(--bg);
+      border-right: 1px solid var(--line-2);
+      box-shadow: 8px 0 40px rgba(0,0,0,0.4);
+      grid-area: unset; display: flex;
+    }
+    .sidebar.on { transform: translateX(0); }
+
+    /* Right rail → each module becomes a bottom sheet */
+    .rail { display: contents; border: 0; grid-area: unset; }
+    .rail .module {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--bg-1); border: 0;
+      border-top: 1px solid var(--line-2);
+      border-radius: 22px 22px 0 0;
+      padding: 24px 18px calc(env(safe-area-inset-bottom, 0px) + 22px);
+      transform: translateY(100%);
+      transition: transform 280ms cubic-bezier(0.32,0.72,0.16,1);
+      z-index: 25; max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.5); gap: 14px;
+    }
+    .rail .module::before {
+      content: ''; width: 36px; height: 4px;
+      background: rgba(255,255,255,0.18); border-radius: 4px;
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    }
+    .rail .module.on { transform: translateY(0) !important; display: flex; }
+    .rail .module:not(.on) { pointer-events: none; }
+    #shortcuts-module { display: none !important; } /* keyboard hints n/a on touch */
+
+    /* Bottom nav */
+    .mobile-nav {
+      grid-area: navbar; display: flex;
+      background: rgba(15,15,18,0.92);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--line); align-items: stretch; z-index: 15;
+    }
+    .m-nav-btn {
+      flex: 1; background: transparent; border: 0; color: var(--fg-3);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      cursor: pointer; font-family: var(--font-sans); font-size: 9px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.12em; padding: 8px 4px 6px;
+      position: relative; transition: color 120ms;
+    }
+    .m-nav-btn svg { width: 21px; height: 21px; stroke-width: 1.6; }
+    .m-nav-btn:active, .m-nav-btn.active { color: var(--fg); }
+    .m-nav-btn.active::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 22px; height: 2px; background: var(--accent); border-radius: 0 0 2px 2px;
+    }
+
+    /* Sheet backdrop */
+    .sheet-back {
+      display: block; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+      opacity: 0; pointer-events: none; transition: opacity 200ms; z-index: 20;
+    }
+    .sheet-back.on { opacity: 1; pointer-events: auto; }
+
+    /* Main content: stack + wrap so nothing spills */
+    .main { padding: 14px 12px 28px; gap: 14px; }
+    .status-row { flex-wrap: wrap; gap: 8px; }
+    .status-row .left, .status-row .right { flex-wrap: wrap; gap: 8px 10px; }
+    .scramble-card { padding: 16px; gap: 16px; }
+    .scramble-card .scramble { font-size: 15px; }
+    .net-wrap svg { max-width: 200px; height: 150px; }
+    .solution-block { padding: 16px; }
+    .rating-row { flex-wrap: wrap; gap: 10px 14px; padding: 14px 16px; }
+    .alg-display { padding: 18px; gap: 16px; }
+    .alg-display .alg-seq { font-size: 15px; }
+    .alg-timer-card { padding: 26px 20px; }
+    .alg-timer-display { font-size: 72px; }
+    .alg-bottom-row > div { flex-wrap: wrap; }
+
+    /* Subset modal → bottom sheet */
+    .modal-back { align-items: flex-end; }
+    .modal {
+      width: 100%; max-width: none; max-height: 82vh;
+      border-radius: 22px 22px 0 0; border: 0;
+      border-top: 1px solid var(--line-2);
+      padding: 26px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+      position: relative;
+    }
+    .modal::before {
+      content: ''; width: 36px; height: 4px;
+      background: rgba(255,255,255,0.18); border-radius: 4px;
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    }
+    .modal-foot { flex-wrap: wrap; gap: 10px; }
+    .modal-foot .btns { flex: 1; justify-content: flex-end; }
+  }
+
+  /* ── Small phone ─────────────────────────────────────────────── */
+  @media (max-width: 420px) {
+    .brand .name { display: none; }
+    .app-tab { padding: 0 7px; }
+    .trainer-picker button { padding: 6px 8px; }
+    .m-nav-btn { font-size: 8.5px; }
+    .alg-timer-display { font-size: 62px; }
+  }
+</style>
+</head>
+<body>
+  <script>
+    window.__CT_TWEAKS = /*EDITMODE-BEGIN*/{
+      "trainer": "cross"
+    }/*EDITMODE-END*/;
+  </script>
+
+  <div class="app">
+    <!-- ── Top bar ─────────────────────────────────────────── -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark"><span></span><span></span><span></span><span></span></span>
+        <span class="name">tempo<em>.timer</em></span>
+      </div>
+
+      <nav class="app-tabs">
+        <a class="app-tab" href="studio.html">Timer</a>
+        <a class="app-tab active" href="training.html">Training</a>
+        <button type="button" class="app-tab disabled" disabled>Profile<span class="soon">soon</span></button>
+      </nav>
+
+      <div class="trainer-picker" id="trainer-picker">
+        <button data-trainer="cross" class="active">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v16M4 12h16" stroke-linecap="round"/></svg></span>
+          Cross
+        </button>
+        <button data-trainer="alg">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+          Algorithms
+        </button>
+      </div>
+
+      <div class="top-actions">
+        <button class="icon-btn" title="Settings (in rail)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.7 1.7 0 00-1.11-1.56 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.7 1.7 0 00.34-1.87 1.7 1.7 0 00-1.51-1H3a2 2 0 010-4h.09A1.7 1.7 0 004.65 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06a1.7 1.7 0 001.87.34h0a1.7 1.7 0 001-1.51V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.51 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06a1.7 1.7 0 00-.34 1.87v0a1.7 1.7 0 001.51 1H21a2 2 0 010 4h-.09a1.7 1.7 0 00-1.51 1z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── Sidebar (history / alg list) ───────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="side-head" id="cross-side-head">
+        <span class="title">Cross history</span>
+        <span class="meta" data-cross-summary>8 · 6.2 avg · 2 flagged</span>
+      </div>
+      <div class="side-head" id="alg-side-head" style="display:none">
+        <span class="title">In rotation</span>
+        <span class="meta" id="alg-rotation-meta">PLL · 7 of 21 cases</span>
+      </div>
+
+      <!-- Cross trainer: history list -->
+      <div class="hist-list" data-cross-history id="cs-recent-list"></div>
+
+      <!-- Alg trainer: subset list -->
+      <div class="alg-list" id="alg-list"></div>
+
+      <div class="sidebar-foot">
+        <button class="ghost-btn" id="btn-clear-history">Clear history</button>
+        <button class="ghost-btn" id="btn-export-history">Export</button>
+      </div>
+    </aside>
+
+    <!-- ── Main ───────────────────────────────────────────── -->
+    <main class="main">
+      <!-- Cross trainer view -->
+      <div class="cross-main" id="cross-stage">
+
+        <div class="status-row">
+          <div class="left">
+            <span class="seq">SCRAMBLE <b id="cs-seq">#013</b></span>
+            <span class="pill" id="cs-color"><span class="sw" style="background:#f3f3ef"></span><span>White cross</span></span>
+            <span class="pill" id="cs-target">≤ 8 moves</span>
+            <span class="pill x" id="cs-xcross" style="display:none">XCross</span>
+          </div>
+          <div class="right">
+            <span class="pill" id="cs-len">20 moves · WCA</span>
+          </div>
+        </div>
+
+        <div class="scramble-card">
+          <div class="text-side">
+            <span class="lab">Scramble</span>
+            <div class="scramble" id="cs-scramble">D2 R' B2 L2 F' R2 U2 B2 D' L' F U' R F2 L U' B'</div>
+            <div class="actions">
+              <button class="btn" id="cs-next"><span>↻</span> Next <span class="key">N</span></button>
+              <button class="btn" id="cs-flag"><span id="cs-flag-icon">☆</span> Flag</button>
+              <button class="btn subtle" id="cs-copy">⎘ Copy</button>
+              <button class="btn subtle" id="cs-inspect">⏱ Inspect</button>
+            </div>
+          </div>
+          <div class="net-wrap">
+            <svg id="cs-net"></svg>
+          </div>
+        </div>
+
+        <div class="insp-bar" id="cs-inspection">
+          <div class="ring">
+            <svg viewBox="0 0 80 80">
+              <circle class="bg" cx="40" cy="40" r="36"></circle>
+              <circle class="fg" cx="40" cy="40" r="36" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0" id="cs-insp-fg"></circle>
+            </svg>
+            <span class="num" id="cs-insp-num">15</span>
+          </div>
+          <div class="info">
+            <span class="l1">Inspection</span>
+            <span class="l2">Look at the scramble, plan your cross</span>
+          </div>
+        </div>
+
+        <div class="solution-block collapsed" id="cs-solution">
+          <div class="head">
+            <span>Cross solution</span>
+            <span class="count" id="cs-sol-count">— / 6 moves</span>
+          </div>
+          <div class="moves" id="cs-moves"></div>
+          <div class="move-meta">
+            <span id="cs-move-state">Hidden — reveal to study</span>
+            <span class="ms" id="cs-move-target">target ≤ 8</span>
+          </div>
+          <div class="actions">
+            <button class="btn primary" id="cs-reveal-one">Reveal next move <span class="key">Space</span></button>
+            <button class="btn" id="cs-reveal-all">Reveal all</button>
+          </div>
+        </div>
+
+        <div class="rating-row" id="cs-rating">
+          <span class="q">How did that go?</span>
+          <div class="options">
+            <button class="rate good" data-rate="good"><span class="dot"></span>Good</button>
+            <button class="rate okay" data-rate="okay"><span class="dot"></span>Okay</button>
+            <button class="rate miss" data-rate="miss"><span class="dot"></span>Missed</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Algorithm trainer view -->
+      <div class="alg-main" id="alg-stage">
+
+        <div class="status-row">
+          <div class="left">
+            <span class="seq">ALGORITHM TRAINER</span>
+            <span class="pill" id="alg-set-summary">PLL · 21 cases · 7 in rotation</span>
+          </div>
+          <div class="right">
+            <div class="mode-toggle" id="alg-mode">
+              <button data-mode="drill" class="active">Drill</button>
+              <button data-mode="subset">Subset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="set-picker" id="alg-set-picker"></div>
+
+        <div class="alg-display">
+          <div class="left-pane">
+            <div class="case-name">
+              <span id="alg-case-grp" class="grp">T</span>
+              <span id="alg-case-id">T-Perm</span>
+            </div>
+            <div class="case-display" id="alg-case-display">T-Perm</div>
+            <div class="alg-seq" id="alg-sequence">R U R' U' R' F R2 U' R' U' R U R' F'</div>
+            <div class="setup"><b>setup</b><span id="alg-setup">F R U R' U' R U R' F'</span></div>
+          </div>
+          <div class="net-wrap">
+            <svg id="alg-net"></svg>
+          </div>
+        </div>
+
+        <div class="alg-timer-card" id="alg-timer-area">
+          <div class="alg-timer-display" id="alg-timer-display">0<span class="ms">.00</span></div>
+          <div class="alg-timer-hint">Hold space · release to start</div>
+        </div>
+
+        <div class="alg-bottom-row">
+          <div class="alg-recent">
+            <div class="head">
+              <span id="alg-recent-label">Recent · T-Perm</span>
+              <span class="stats" id="alg-recent-stats">last <b>—</b> · ao5 <b>—</b> · best <b>—</b></span>
+            </div>
+            <div class="times" id="alg-recent-times"></div>
+          </div>
+          <div style="display:flex; gap: 8px;">
+            <button class="btn primary" id="alg-next">Next case <span class="key">N</span></button>
+            <button class="btn" id="alg-skip">Skip</button>
+            <button class="btn subtle" id="alg-edit-subset">Edit subset…</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ── Right rail (always visible) ────────────────────── -->
+    <aside class="rail">
+      <!-- Cross settings -->
+      <section class="module" id="cross-settings">
+        <h4>Cross trainer · settings</h4>
+        <div class="s-row col">
+          <span class="lab">Cross color</span>
+          <div class="colors" id="color-picker"></div>
+        </div>
+        <div class="slider-row">
+          <div class="top">
+            <span class="lab">Move target</span>
+            <span class="val" id="target-val">≤ 8</span>
+          </div>
+          <input type="range" id="target-slider" min="4" max="12" step="1" value="8" />
+        </div>
+        <div class="s-row"><span class="lab">XCross practice</span><div class="toggle" id="t-xcross"></div></div>
+        <div class="s-row"><span class="lab">Short scramble (15±)</span><div class="toggle" id="t-short"></div></div>
+        <div class="s-row"><span class="lab">15s inspection</span><div class="toggle" id="t-inspection"></div></div>
+        <div class="s-row col">
+          <span class="lab">Reveal mode</span>
+          <div class="seg" id="seg-reveal">
+            <button data-v="one" class="on">One at a time</button>
+            <button data-v="all">All at once</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Alg settings (hidden when cross active) -->
+      <section class="module" id="alg-settings-panel" style="display:none">
+        <h4>Algorithm trainer <span class="ct" id="alg-set-name">PLL</span></h4>
+        <div class="s-row col">
+          <span class="lab">Mode</span>
+          <div class="seg" id="alg-mode-seg">
+            <button data-v="drill" class="on">Drill (random)</button>
+            <button data-v="subset">Subset only</button>
+          </div>
+        </div>
+        <button class="btn subtle" id="alg-open-subset" style="margin-top: 4px;">Edit subset →</button>
+        <!-- Set picker hidden in rail: it lives in main for B -->
+        <div class="seg" id="alg-set-seg" style="display:none"></div>
+        <div class="s-row col" style="margin-top: 6px;">
+          <span class="lab">Tip</span>
+          <p style="margin:0; color: var(--fg-2); font-size: 11px; line-height: 1.45;">Switch sets at the top. Hold space and release to start the timer; press again to stop. <kbd style="font-family: var(--font-mono); border:1px solid var(--line); padding:1px 5px; border-radius:3px; font-size:10px; color: var(--fg-1)">N</kbd> for next case.</p>
+        </div>
+      </section>
+
+      <!-- Always-on legend / shortcuts -->
+      <section class="module" id="shortcuts-module">
+        <h4>Shortcuts</h4>
+        <div style="display: grid; grid-template-columns: 48px 1fr; gap: 6px 14px; font-size: 11px; color: var(--fg-2);">
+          <span style="font-family:var(--font-mono); color:var(--fg-1)">Space</span><span id="rail-help-space">Reveal next move</span>
+          <span style="font-family:var(--font-mono); color:var(--fg-1)">N</span><span>Next scramble</span>
+          <span style="font-family:var(--font-mono); color:var(--fg-1)">F</span><span>Flag scramble</span>
+          <span style="font-family:var(--font-mono); color:var(--fg-1)">R</span><span>Reveal all</span>
+          <span style="font-family:var(--font-mono); color:var(--fg-1)">I</span><span>Start inspection</span>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ── Mobile bottom nav (visible < 880px) ────────────── -->
+    <nav class="mobile-nav" id="mobile-nav">
+      <button class="m-nav-btn" data-nav-open="history" aria-label="History">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 5h13M3 12h13M3 19h13" stroke-linecap="round"/><circle cx="20" cy="5" r="1" fill="currentColor"/><circle cx="20" cy="12" r="1" fill="currentColor"/><circle cx="20" cy="19" r="1" fill="currentColor"/></svg>
+        <span>History</span>
+      </button>
+      <button class="m-nav-btn" data-nav-open="settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.7 1.7 0 00-1.11-1.56 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.7 1.7 0 00.34-1.87 1.7 1.7 0 00-1.51-1H3a2 2 0 010-4h.09A1.7 1.7 0 004.65 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06a1.7 1.7 0 001.87.34h0a1.7 1.7 0 001-1.51V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.51 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06a1.7 1.7 0 00-.34 1.87v0a1.7 1.7 0 001.51 1H21a2 2 0 010 4h-.09a1.7 1.7 0 00-1.51 1z"/></svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+
+    <!-- mobile sheet backdrop -->
+    <div class="sheet-back" id="sheet-back"></div>
+
+    <!-- ── Subset modal ───────────────────────────────────── -->
+    <div class="modal-back" id="subset-modal-back">
+      <div class="modal">
+        <h3>
+          <span>Edit subset · <span id="subset-set-label">PLL</span></span>
+          <span class="ct"><span id="subset-count">7</span> / <span id="subset-total">21</span> selected</span>
+        </h3>
+        <div class="modal-body">
+          <div class="case-grid" id="subset-grid"></div>
+        </div>
+        <div class="modal-foot">
+          <div class="info">
+            Drilled at random from your subset. <b id="subset-info-set">PLL</b> ·
+            <span id="subset-info-count">7 of 21</span>
+          </div>
+          <div class="btns">
+            <button class="sec" id="subset-cancel">Cancel</button>
+            <button id="subset-all">Select all</button>
+            <button id="subset-none">Select none</button>
+            <button class="primary" id="subset-save">Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="engine.js"></script>
+  <script src="training-engine.js"></script>
+  <script src="training-ui.js"></script>
+  <script>
+    // Wire alg list in sidebar (B-direction specific)
+    document.addEventListener('DOMContentLoaded', () => {
+      const update = () => {
+        const trainer = document.querySelector('#trainer-picker button.active')?.dataset?.trainer || 'cross';
+        const algListVisible = trainer === 'alg';
+        const sb = document.getElementById('alg-list');
+        const hl = document.querySelector('.hist-list');
+        const chead = document.getElementById('cross-side-head');
+        const ahead = document.getElementById('alg-side-head');
+        if (sb) sb.classList.toggle('on', algListVisible);
+        if (hl) hl.style.display = algListVisible ? 'none' : '';
+        if (chead) chead.style.display = algListVisible ? 'none' : '';
+        if (ahead) ahead.style.display = algListVisible ? '' : 'none';
+        // Render alg list
+        if (algListVisible && window.TRAINING) {
+          const store = window.TRAINING.loadStore();
+          const set = window.TRAINING.ALG_SETS[store.algSettings.set];
+          const subset = store.algSettings.subsets[set.id] || [];
+          const list = store.algSettings.mode === 'subset'
+            ? set.algs.filter(a => subset.includes(a.name))
+            : set.algs;
+          sb.innerHTML = '';
+          // Header
+          const headerRow = document.createElement('div');
+          headerRow.className = 'alg-list-head';
+          headerRow.innerHTML = `<span>${store.algSettings.mode === 'subset' ? 'Subset' : 'All cases'}</span><span class="ct">${list.length} / ${set.count}</span>`;
+          sb.appendChild(headerRow);
+          // Rows
+          list.slice(0, 80).forEach((a, i) => {
+            const row = document.createElement('div');
+            row.className = 'alg-row';
+            if (i === 0) row.classList.add('cur');
+            const times = store.algHistory[a.name] || [];
+            const best = times.length ? Math.min(...times) : null;
+            row.innerHTML = `
+              <span class="nm">${a.name}<small>${a.group}</small></span>
+              <span class="t">${best != null ? (best/1000).toFixed(2) : '—'}</span>
+            `;
+            sb.appendChild(row);
+          });
+          document.getElementById('alg-rotation-meta').textContent = `${set.label} · ${list.length} of ${set.count} cases`;
+        }
+        // shortcut help line varies
+        const space = document.getElementById('rail-help-space');
+        if (space) space.textContent = algListVisible ? 'Start / stop timer' : 'Reveal next move';
+      };
+      // Subscribe to trainer-picker clicks
+      document.querySelectorAll('#trainer-picker button').forEach(b => b.addEventListener('click', () => setTimeout(update, 0)));
+      // Also update when alg set / mode changes
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('#alg-set-picker, #alg-mode, #alg-mode-seg, #alg-set-seg')) {
+          setTimeout(update, 0);
+        }
+      });
+      update();
+    });
+  </script>
+
+  <!-- ── Mobile nav: history slide-in + settings sheet ───── -->
+  <script>
+    (function () {
+      const back = document.getElementById('sheet-back');
+      const mq = window.matchMedia('(max-width: 880px)');
+
+      function closeAll() {
+        document.querySelectorAll('.sidebar.on, .rail .module.on').forEach((el) => el.classList.remove('on'));
+        if (back) back.classList.remove('on');
+        document.querySelectorAll('.m-nav-btn').forEach((b) => b.classList.remove('active'));
+      }
+      function activeSettings() {
+        const alg = document.getElementById('alg-settings-panel');
+        if (alg && getComputedStyle(alg).display !== 'none') return alg;
+        return document.getElementById('cross-settings');
+      }
+      function openTarget(which, btn) {
+        const el = which === 'history' ? document.getElementById('sidebar')
+                 : which === 'settings' ? activeSettings() : null;
+        if (!el) return;
+        const wasOpen = el.classList.contains('on');
+        closeAll();
+        if (wasOpen) return; // tapped the open one again → just close
+        el.classList.add('on');
+        if (back) back.classList.add('on');
+        if (btn) btn.classList.add('active');
+      }
+      document.querySelectorAll('.m-nav-btn').forEach((b) => {
+        b.addEventListener('click', (e) => { e.stopPropagation(); openTarget(b.dataset.navOpen, b); });
+      });
+      if (back) back.addEventListener('click', closeAll);
+      // Switching trainer rebuilds the settings content → close any open sheet
+      document.querySelectorAll('#trainer-picker button').forEach((b) => b.addEventListener('click', closeAll));
+      // Opening the subset editor from within the settings sheet: close the sheet first
+      document.getElementById('alg-open-subset')?.addEventListener('click', closeAll);
+      document.getElementById('alg-edit-subset')?.addEventListener('click', closeAll);
+      // Back to desktop → clear mobile sheet state
+      mq.addEventListener('change', (e) => { if (!e.matches) closeAll(); });
+
+      // Deep-link support (used by the design-canvas mobile artboards):
+      //   ?trainer=alg     → open the algorithm trainer
+      //   ?sheet=history   → open the history slide-in
+      //   ?sheet=settings  → open the settings sheet
+      try {
+        const sp = new URLSearchParams(location.search);
+        if (sp.get('trainer') === 'alg') {
+          document.querySelector('#trainer-picker button[data-trainer="alg"]')?.click();
+        }
+        const sheet = sp.get('sheet');
+        if (sheet) {
+          // Defer so layout (and the artboard's 402px sizing) has settled —
+          // a synchronous matchMedia check can read stale width during parse.
+          setTimeout(() => {
+            const btn = document.querySelector(`.m-nav-btn[data-nav-open="${sheet}"]`);
+            openTarget(sheet, btn);
+          }, 60);
+        }
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>
