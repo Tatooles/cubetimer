@@ -4,7 +4,7 @@ catalog:
   # "latest" is 1.x and is intentionally not pulled in here.
   vite: npm:@voidzero-dev/vite-plus-core@0.1.24
   vitest: npm:@voidzero-dev/vite-plus-test@0.1.24
-  vite-plus: 0.1.24
+  vite-plus: 1.7.0
 overrides:
   vite: "catalog:"
   vitest: "catalog:"
